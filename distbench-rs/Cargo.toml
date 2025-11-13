@@ -1,0 +1,40 @@
+[workspace]
+members = [
+    "lib/procs",
+    "lib/core",
+]
+
+[package]
+name = "runner"
+authors = ["Yigit Colakoglu <root@yigit.run>"]
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "runner"
+path = "src/lib.rs"
+
+[dependencies]
+async-trait = "0.1.89"
+clap = { version = "4.5.51", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+env_logger = "0.11.8"
+distbench = { path = "lib/core" }
+log = "0.4.28"
+serde_json = "1.0.145"
+serde_yaml = "0.9.34"
+typetag = "0.2.21"
+futures = "0.3.31"
+rand = "0.8"
+chrono = "0.4"
+ansi_term = "0.12.1"
+rkyv = { version = "0.7", features = ["validation"] }
+common_macros = "0.1.1"
+serde = { version = "1.0.228", features = ["derive"] }
+blake3 = "1.8.2"
+
+[build-dependencies]
+syn = { version = "2.0", features = ["full", "parsing"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
