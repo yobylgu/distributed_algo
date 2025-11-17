@@ -1,0 +1,16 @@
+node1:
+  is_initiator: true
+  initial_value: "Hello from the message chain!"
+  max_hops: 3
+
+node2:
+  is_initiator: false
+  max_hops: 3
+
+node3:
+  is_initiator: false
+  max_hops: 3
+
+node4:
+  is_initiator: false
+  max_hops: 3

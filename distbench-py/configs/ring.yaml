@@ -1,0 +1,19 @@
+node1:
+  neighbours:
+    - node2
+  node_id: 1
+
+node2:
+  neighbours:
+    - node3
+  node_id: 2
+
+node3:
+  neighbours:
+    - node4
+  node_id: 3
+
+node4:
+  neighbours:
+    - node1
+  node_id: 4

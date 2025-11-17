@@ -1,0 +1,15 @@
+node1:
+  neighbours:
+    - node2
+    - node3
+  start_node: true
+
+node2:
+  neighbours:
+    - node1
+  start_node: false
+
+node3:
+  neighbours:
+    - node1
+  start_node: false
