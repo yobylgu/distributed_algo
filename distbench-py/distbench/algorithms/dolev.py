@@ -161,6 +161,25 @@ class Dolev(Algorithm):
         if self.has_f_plus_one_disjoint(paths, msg.source):
             logger.info(f"[{self.id()}] DELIVER {msg_id} payload={msg.payload}")
             self.delivered.add(msg_id)
+
+            # MD.2: Send empty path to all neighbors after delivery
+            empty_msg = DMsg(
+                msg_id=msg_id,
+                source=msg.source,
+                payload=msg.payload,
+                path=[]
+            )
+
+            for peer in self.peers.values():
+                await peer.dolev(empty_msg)
+
+            # Mark that we've forwarded empty path
+            self.forwarded_empty.add(msg_id)
+
+            # Clear stored paths for this message
+            if msg_id in self.paths:
+                del self.paths[msg_id]
+
             await self.terminate()
 
 
