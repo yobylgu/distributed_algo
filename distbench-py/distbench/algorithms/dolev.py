@@ -128,7 +128,11 @@ class Dolev(Algorithm):
         if msg_id not in self.paths:
             self.paths[msg_id] = []
 
-        if new_path not in self.paths[msg_id]:
+        # MD.4 extension: Skip paths containing nodes that have already delivered
+        delivered_neighbors = self.neighbor_delivered.get(msg_id, set())
+        path_contains_delivered = any(node in delivered_neighbors for node in new_path)
+
+        if not path_contains_delivered and new_path not in self.paths[msg_id]:
             self.paths[msg_id].append(new_path)
 
         for peer in self.peers.values():
