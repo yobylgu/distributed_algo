@@ -132,7 +132,12 @@ class Dolev(Algorithm):
         delivered_neighbors = self.neighbor_delivered.get(msg_id, set())
         path_contains_delivered = any(node in delivered_neighbors for node in new_path)
 
-        if not path_contains_delivered and new_path not in self.paths[msg_id]:
+        # Don't store OR forward if path contains delivered neighbor
+        if path_contains_delivered:
+            logger.info(f"[{self.id()}] skipping path {new_path} (contains delivered neighbor)")
+            return  # Don't forward tainted paths
+
+        if new_path not in self.paths[msg_id]:
             self.paths[msg_id].append(new_path)
 
         for peer in self.peers.values():
