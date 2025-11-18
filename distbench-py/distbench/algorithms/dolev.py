@@ -189,6 +189,10 @@ class Dolev(Algorithm):
         needed = self.f + 1
         chosen: List[Set[str]] = []
 
+        # MD.4: Get nodes that have already delivered (to filter out their paths)
+        # Note: We need msg_id to check neighbor_delivered, but we don't have it here.
+        # The filtering is already done in path storage, so paths here are already clean.
+
         for path in paths:
             internal = set(path)
             # sender and receiver cant be byzantine (assumed)
