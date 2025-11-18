@@ -108,6 +108,15 @@ class Dolev(Algorithm):
             await self._immediate_deliver(msg)
             return
 
+        # MD.4: Handle empty path (delivery signal from neighbor)
+        if not msg.path:
+            # Track that src_id has delivered this message
+            if msg_id not in self.neighbor_delivered:
+                self.neighbor_delivered[msg_id] = set()
+            self.neighbor_delivered[msg_id].add(src_id)
+            logger.info(f"[{self.id()}] recv empty path from {src_id} for {msg_id} (neighbor delivered)")
+            return
+
         new_path = msg.path + [src_id]
 
         logger.info(f"[{self.id()}] recv {msg_id} via {new_path}")
