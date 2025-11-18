@@ -66,6 +66,35 @@ class Dolev(Algorithm):
     # ============== OPTIMIZATIONS ==============
         # all 5 optims are abt forwarding and optims so change below
 
+    # MD.1 & MD.2: Immediate delivery helper - delivers message and sends empty paths
+    async def _immediate_deliver(self, msg: DMsg) -> None:
+        """
+        MD.1: Deliver message immediately when received directly from source.
+        MD.2: After delivery, send empty path to all neighbors to signal delivery.
+        """
+        msg_id = msg.msg_id
+
+        # Mark as delivered
+        self.delivered.add(msg_id)
+        logger.info(f"[{self.id()}] DELIVER (direct from source) {msg_id} payload={msg.payload}")
+
+        # MD.2: Send empty path to ALL neighbors to signal delivery
+        empty_msg = DMsg(
+            msg_id=msg_id,
+            source=msg.source,
+            payload=msg.payload,
+            path=[]
+        )
+
+        for peer in self.peers.values():
+            await peer.dolev(empty_msg)
+
+        # Mark that we've forwarded empty path
+        self.forwarded_empty.add(msg_id)
+
+        # Clear stored paths for this message
+        if msg_id in self.paths:
+            del self.paths[msg_id]
 
     #loop and paths tracking, calls deliver to check if can deliver
 
@@ -73,6 +102,11 @@ class Dolev(Algorithm):
     async def dolev(self, src: PeerId, msg: DMsg) -> None:
         msg_id = msg.msg_id
         src_id = str(src)
+
+        # MD.1: Direct delivery from source
+        if src_id == msg.source and msg_id not in self.delivered:
+            await self._immediate_deliver(msg)
+            return
 
         new_path = msg.path + [src_id]
 
