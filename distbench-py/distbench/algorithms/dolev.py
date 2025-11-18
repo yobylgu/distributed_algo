@@ -103,6 +103,10 @@ class Dolev(Algorithm):
         msg_id = msg.msg_id
         src_id = str(src)
 
+        # MD.5: Stop processing if already delivered AND forwarded empty
+        if msg_id in self.delivered and msg_id in self.forwarded_empty:
+            return
+
         # MD.1: Direct delivery from source
         if src_id == msg.source and msg_id not in self.delivered:
             await self._immediate_deliver(msg)
