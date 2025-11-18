@@ -1,0 +1,12 @@
+n1:
+  f: 2
+  is_sender: true
+  payload: "hello"
+n2:
+  f: 2
+n3:
+  f: 2
+n4:
+  f: 2
+n5:
+  f: 2

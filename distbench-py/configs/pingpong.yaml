@@ -1,0 +1,8 @@
+n1:
+  neighbours: [n2]
+  initiator: true
+  max_rounds: 10
+
+n2:
+  neighbours: [n1]
+  initiator: false
