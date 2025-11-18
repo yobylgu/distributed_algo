@@ -1,4 +1,5 @@
 import logging
+import uuid
 from typing import Dict, Any, List, Set
 
 from distbench import Algorithm, PeerId
@@ -27,6 +28,10 @@ class Dolev(Algorithm):
         self.peers = peers
         self.paths: Dict[str, List[List[str]]] = {}
         self.delivered: Set[str] = set()
+        # MD.4: Track which neighbors have delivered each message
+        self.neighbor_delivered: Dict[str, Set[str]] = {}
+        # MD.2/MD.5: Track messages for which we've forwarded empty paths
+        self.forwarded_empty: Set[str] = set()
 
     async def on_start(self) -> None:
         logger.info(f"[{self.id()}] starting with f={self.f}")
@@ -40,7 +45,7 @@ class Dolev(Algorithm):
         return {"delivered_count": str(len(self.delivered))}
 
     async def broadcast_message(self) -> None:
-        msg_id = "test_bby"
+        msg_id = str(uuid.uuid4())
         self_id = str(self.id())
 
         msg = DMsg(
