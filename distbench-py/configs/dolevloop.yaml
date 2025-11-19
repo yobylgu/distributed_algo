@@ -1,0 +1,20 @@
+n0:
+  neighbours: [n1]
+  is_sender: true
+  f: 1
+
+n1:
+  neighbours: [n0, n2, n4]
+  f: 1
+
+n2:
+  neighbours: [n1, n3, n4]
+  f: 1
+
+n3:
+  neighbours: [n2]
+  f: 1
+
+n4:
+  neighbours: [n1, n2]
+  f: 1
