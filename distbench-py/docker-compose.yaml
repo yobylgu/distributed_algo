@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+  n0:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n0"]
+
+  n1:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n1"]
+
+  n2:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n2"]
+
+  n3:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n3"]
+
+  n4:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n4"]
+
+  n5:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n5"]
+
+  n6:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n6"]
+
+  n7:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n7"]
+
+  n8:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n8"]
+
+  n9:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n9"]
