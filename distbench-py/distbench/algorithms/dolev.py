@@ -174,7 +174,7 @@ class Dolev(Algorithm):
         if msg_id in self.paths:
             del self.paths[msg_id]
 
-        await self.terminate()
+        return
 
     # helper to check f+1 disjoint paths
     def disPaths(self, paths: List[List[str]], source: str) -> bool:
