@@ -1,12 +1,25 @@
-n1:
-  f: 2
+n0:
+  neighbours: []
   is_sender: true
-  payload: "hello"
+  f: 2
+  max_delay: 0.2
+
+n1:
+  neighbours: []
+  f: 2
+  max_delay: 0.2
+
 n2:
+  neighbours: []
   f: 2
+  max_delay: 0.2
+
 n3:
+  neighbours: []
   f: 2
+  max_delay: 0.2
+
 n4:
+  neighbours: []
   f: 2
-n5:
-  f: 2
+  max_delay: 0.2

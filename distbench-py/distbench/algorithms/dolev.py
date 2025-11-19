@@ -1,7 +1,8 @@
 import logging
 import uuid
 from typing import Dict, Any, List, Set
-
+import random
+import asyncio
 from distbench import Algorithm, PeerId
 from distbench.decorators import message, handler, config_field, distbench
 
@@ -22,6 +23,7 @@ class Dolev(Algorithm):
     f: int = config_field(required=True)
     is_sender: bool = config_field(default=False)
     payload: str = config_field(default="hello")
+    max_delay: float = config_field(default=0.5)
 
     def __init__(self, config: Dict[str, Any], peers: Dict[PeerId, Any]):
         super().__init__()
@@ -62,41 +64,24 @@ class Dolev(Algorithm):
 
         self.delivered.add(msg_id)
 
-    # do not change above, it's msg builder and loop to send stuff (optims come below)
-    # ============== OPTIMIZATIONS ==============
-        # all 5 optims are abt forwarding and optims so change below
+    async def delay(self):
+        await asyncio.sleep(random.uniform(0, self.max_delay))
 
-    # MD.1 & MD.2: Immediate delivery helper - delivers message and sends empty paths
+    # ============== OPTIMIZATIONS ==============
+
+    # MD.1: Immediate delivery helper - only mark delivered and log
     async def _immediate_deliver(self, msg: DMsg) -> None:
         """
         MD.1: Deliver message immediately when received directly from source.
-        MD.2: After delivery, send empty path to all neighbors to signal delivery.
+        MD.2 decoupled from MD.1 cause it forwarded empty paths continuosly
         """
         msg_id = msg.msg_id
 
-        # Mark as delivered
+        if msg_id in self.delivered:
+            return
         self.delivered.add(msg_id)
         logger.info(f"[{self.id()}] DELIVER (direct from source) {msg_id} payload={msg.payload}")
 
-        # MD.2: Send empty path to ALL neighbors to signal delivery
-        empty_msg = DMsg(
-            msg_id=msg_id,
-            source=msg.source,
-            payload=msg.payload,
-            path=[]
-        )
-
-        for peer in self.peers.values():
-            await peer.dolev(empty_msg)
-
-        # Mark that we've forwarded empty path
-        self.forwarded_empty.add(msg_id)
-
-        # Clear stored paths for this message
-        if msg_id in self.paths:
-            del self.paths[msg_id]
-
-    #loop and paths tracking, calls deliver to check if can deliver
 
     @handler
     async def dolev(self, src: PeerId, msg: DMsg) -> None:
@@ -108,13 +93,13 @@ class Dolev(Algorithm):
             return
 
         # MD.1: Direct delivery from source
-        if src_id == msg.source and msg_id not in self.delivered:
-            await self._immediate_deliver(msg)
-            return
+        if src_id == msg.source:
+            if msg_id not in self.delivered:
+                await self._immediate_deliver(msg)
 
-        # MD.4: Handle empty path (delivery signal from neighbor)
-        if not msg.path:
-            # Track that src_id has delivered this message
+
+        # MD.4: Handle empty path (delivery signal from neighbor), but NOT from source
+        if not msg.path and src_id != msg.source:
             if msg_id not in self.neighbor_delivered:
                 self.neighbor_delivered[msg_id] = set()
             self.neighbor_delivered[msg_id].add(src_id)
@@ -132,17 +117,21 @@ class Dolev(Algorithm):
         delivered_neighbors = self.neighbor_delivered.get(msg_id, set())
         path_contains_delivered = any(node in delivered_neighbors for node in new_path)
 
-        # Don't store OR forward if path contains delivered neighbor
         if path_contains_delivered:
-            logger.info(f"[{self.id()}] skipping path {new_path} (contains delivered neighbor)")
-            return  # Don't forward tainted paths
+            return  # Don't store or forward tainted paths
 
         if new_path not in self.paths[msg_id]:
             self.paths[msg_id].append(new_path)
 
+        delivered_neighbors = self.neighbor_delivered.get(msg_id, set())
+
         for peer in self.peers.values():
             peer_str = str(peer.peer_id)
+            # MD.3: Avoid sending to neighbors that have delivered (according to empty-path info)
+            if peer_str in delivered_neighbors:
+                continue
             if peer_str not in new_path:
+                await self.delay()
                 await peer.dolev(
                     DMsg(
                         msg_id=msg_id,
@@ -153,44 +142,42 @@ class Dolev(Algorithm):
                 )
         await self.deliver(msg)
 
-    # check if can deliver
-    # has help func to check disjoint paths
     async def deliver(self, msg: DMsg) -> None:
         msg_id = msg.msg_id
 
-        if msg_id in self.delivered:
-            return
-
         paths = self.paths.get(msg_id, [])
 
-        if self.has_f_plus_one_disjoint(paths, msg.source):
+        # Step 1: if we have not delivered yet, see if we now have f+1 disjoint paths
+        if msg_id not in self.delivered:
+            if not self.disPaths(paths, msg.source):
+                return
             logger.info(f"[{self.id()}] DELIVER {msg_id} payload={msg.payload}")
             self.delivered.add(msg_id)
 
-            # MD.2: Send empty path to all neighbors after delivery
-            empty_msg = DMsg(
-                msg_id=msg_id,
-                source=msg.source,
-                payload=msg.payload,
-                path=[]
-            )
+        # Step 2: MD.2 – send empty path only once
+        if msg_id in self.forwarded_empty:
+            return
 
-            for peer in self.peers.values():
-                await peer.dolev(empty_msg)
+        empty_msg = DMsg(
+            msg_id=msg_id,
+            source=msg.source,
+            payload=msg.payload,
+            path=[]
+        )
 
-            # Mark that we've forwarded empty path
-            self.forwarded_empty.add(msg_id)
+        for peer in self.peers.values():
+            await self.delay()
+            await peer.dolev(empty_msg)
 
-            # Clear stored paths for this message
-            if msg_id in self.paths:
-                del self.paths[msg_id]
+        self.forwarded_empty.add(msg_id)
 
-            await self.terminate()
+        if msg_id in self.paths:
+            del self.paths[msg_id]
 
+        await self.terminate()
 
     # helper to check f+1 disjoint paths
-    # as brute force as it gets
-    def has_f_plus_one_disjoint(self, paths: List[List[str]], source: str) -> bool:
+    def disPaths(self, paths: List[List[str]], source: str) -> bool:
         needed = self.f + 1
         chosen: List[Set[str]] = []
 
@@ -204,7 +191,8 @@ class Dolev(Algorithm):
             internal.discard(source)
             internal.discard(str(self.id()))
 
-            if any(internal & used for used in chosen):
+            conflict = any(internal & used for used in chosen)
+            if conflict:
                 continue
 
             chosen.append(internal)
