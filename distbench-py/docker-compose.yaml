@@ -2,61 +2,141 @@ version: "3.9"
 
 services:
   n0:
+    container_name: n0
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n0"]
+    volumes:
+      - ./logs:/logs
+    command:
+      - /bin/sh
+      - -c
+      - >
+        distbench -c configs/dolev10.yaml -a dolev --mode network --id n0
+        > /logs/n0.txt 2>&1
 
   n1:
+    container_name: n1
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n1"]
+    volumes:
+      - ./logs:/logs
+    command:
+      - /bin/sh
+      - -c
+      - >
+        distbench -c configs/dolev10.yaml -a dolev --mode network --id n1
+        > /logs/n1.txt 2>&1
 
   n2:
+    container_name: n2
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n2"]
+    volumes:
+      - ./logs:/logs
+    command:
+      - /bin/sh
+      - -c
+      - >
+        distbench -c configs/dolev10.yaml -a dolev --mode network --id n2
+        > /logs/n2.txt 2>&1
 
   n3:
+    container_name: n3
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n3"]
+    volumes:
+      - ./logs:/logs
+    command:
+      - /bin/sh
+      - -c
+      - >
+        distbench -c configs/dolev10.yaml -a dolev --mode network --id n3
+        > /logs/n3.txt 2>&1
 
   n4:
+    container_name: n4
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n4"]
+    volumes:
+      - ./logs:/logs
+    command:
+      - /bin/sh
+      - -c
+      - >
+        distbench -c configs/dolev10.yaml -a dolev --mode network --id n4
+        > /logs/n4.txt 2>&1
 
   n5:
+    container_name: n5
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n5"]
+    volumes:
+      - ./logs:/logs
+    command:
+      - /bin/sh
+      - -c
+      - >
+        distbench -c configs/dolev10.yaml -a dolev --mode network --id n5
+        > /logs/n5.txt 2>&1
 
   n6:
+    container_name: n6
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n6"]
+    volumes:
+      - ./logs:/logs
+    command:
+      - /bin/sh
+      - -c
+      - >
+        distbench -c configs/dolev10.yaml -a dolev --mode network --id n6
+        > /logs/n6.txt 2>&1
 
   n7:
+    container_name: n7
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n7"]
+    volumes:
+      - ./logs:/logs
+    command:
+      - /bin/sh
+      - -c
+      - >
+        distbench -c configs/dolev10.yaml -a dolev --mode network --id n7
+        > /logs/n7.txt 2>&1
 
   n8:
+    container_name: n8
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n8"]
+    volumes:
+      - ./logs:/logs
+    command:
+      - /bin/sh
+      - -c
+      - >
+        distbench -c configs/dolev10.yaml -a dolev --mode network --id n8
+        > /logs/n8.txt 2>&1
 
   n9:
+    container_name: n9
     build:
       context: .
       dockerfile: docker/Dockerfile
-    command: ["distbench", "-c", "configs/dolev10.yaml", "-a", "dolev", "--id", "n9"]
+    volumes:
+      - ./logs:/logs
+    command:
+      - /bin/sh
+      - -c
+      - >
+        distbench -c configs/dolev10.yaml -a dolev --mode network --id n9
+        > /logs/n9.txt 2>&1

@@ -1,50 +1,60 @@
 n0:
-  listen: 0.0.0.0:5000
+  host: "n0"
+  port: 5000
   neighbours: [n1, n9]
   is_sender: true
   f: 3
 
 n1:
-  listen: 0.0.0.0:5001
+  host: "n1"
+  port: 5001
   neighbours: [n0, n2]
   f: 3
 
 n2:
-  listen: 0.0.0.0:5002
+  host: "n2"
+  port: 5002
   neighbours: [n1, n3]
   f: 3
 
 n3:
-  listen: 0.0.0.0:5003
+  host: "n3"
+  port: 5003
   neighbours: [n2, n4]
   f: 3
 
 n4:
-  listen: 0.0.0.0:5004
+  host: "n4"
+  port: 5004
   neighbours: [n3, n5]
   f: 3
 
 n5:
-  listen: 0.0.0.0:5005
+  host: "n5"
+  port: 5005
   neighbours: [n4, n6]
   f: 3
 
 n6:
-  listen: 0.0.0.0:5006
+  host: "n6"
+  port: 5006
   neighbours: [n5, n7]
   f: 3
 
 n7:
-  listen: 0.0.0.0:5007
+  host: "n7"
+  port: 5007
   neighbours: [n6, n8]
   f: 3
 
 n8:
-  listen: 0.0.0.0:5008
+  host: "n8"
+  port: 5008
   neighbours: [n7, n9]
   f: 3
 
 n9:
-  listen: 0.0.0.0:5009
+  host: "n9"
+  port: 5009
   neighbours: [n8, n0]
   f: 3
