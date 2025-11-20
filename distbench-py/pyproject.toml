@@ -12,6 +12,8 @@ dependencies = [
     "msgpack>=1.0",
     "pynacl>=1.5.0",
     "click>=8.1",
+    "matplotlib>=3.10.7",
+    "numpy>=2.2.6",
 ]
 
 [project.scripts]

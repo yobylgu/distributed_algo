@@ -1,0 +1,4 @@
+experiment,name,N,f,senders,byzantine_count,honest_nodes,avg_latency_ms,total_messages,avg_delivered
+scalability,N4_f1,4,1,1,0,1,0,3,1.0
+scalability,N7_f2,7,2,1,0,1,0,6,1.0
+concurrency,concurrent_3,7,2,3,0,1,0,18,3.0
