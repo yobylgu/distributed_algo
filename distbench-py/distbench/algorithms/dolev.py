@@ -1,6 +1,8 @@
 import asyncio
+import json
 import logging
 import random
+import time
 import uuid
 from typing import Dict, Any, List, Set
 
@@ -42,6 +44,13 @@ class Dolev(Algorithm):
         # Track total expected messages based on senders in the network
         self.expected_messages: int = 0
         self.messages_sent: int = 0
+
+        # METRICS: Performance tracking
+        self.start_time = time.time()
+        self.total_messages_sent = 0          # All point-to-point sends
+        self.messages_forwarded = 0           # Relay/forward count
+        self.empty_paths_sent = 0             # MD.2 optimization messages
+        self.message_metrics: Dict[str, Dict] = {}  # msg_id -> {broadcast_time, delivery_time, ...}
 
     async def on_start(self) -> None:
         logger.info(f"[{self.id()}] starting with f={self.f}, behavior={self.behavior_mode}")
@@ -86,6 +95,30 @@ class Dolev(Algorithm):
         await self.terminate()
 
     async def on_exit(self) -> None:
+        # Calculate latencies for delivered messages
+        latencies = []
+        for msg_id, metrics in self.message_metrics.items():
+            if metrics.get("delivery_time") and metrics.get("broadcast_time"):
+                latency_ms = (metrics["delivery_time"] - metrics["broadcast_time"]) * 1000
+                latencies.append(latency_ms)
+
+        # Compile comprehensive metrics
+        metrics_output = {
+            "node_id": str(self.id()),
+            "total_messages_sent": self.total_messages_sent,
+            "messages_forwarded": self.messages_forwarded,
+            "empty_paths_sent": self.empty_paths_sent,
+            "delivered_count": len(self.delivered),
+            "avg_latency_ms": sum(latencies) / len(latencies) if latencies else 0,
+            "min_latency_ms": min(latencies) if latencies else 0,
+            "max_latency_ms": max(latencies) if latencies else 0,
+            "is_sender": self.is_sender,
+            "behavior_mode": self.behavior_mode,
+            "f": self.f
+        }
+
+        # Output JSON for benchmark parsing
+        logger.info(f"METRICS_JSON: {json.dumps(metrics_output)}")
         logger.info(f"[{self.id()}] finished")
 
     async def report(self) -> Dict[str, str]:
@@ -108,12 +141,21 @@ class Dolev(Algorithm):
             path=[],
         )
 
+        # METRICS: Record broadcast timestamp
+        self.message_metrics[msg_id] = {
+            "broadcast_time": time.time(),
+            "delivery_time": None,
+            "source": self_id,
+            "is_sender": True
+        }
+
         logger.info(f"[{self.id()}] BROADCAST START FOR -----> {msg_id} payload={msg.payload}")
 
         for peer in self.peers.values():
             if str(peer.peer_id) in self.neighbour_ids:
                 await self._apply_delay()
                 await peer.dolev(msg)
+                self.total_messages_sent += 1
 
         self.delivered.add(msg_id)
 
@@ -131,6 +173,12 @@ class Dolev(Algorithm):
 
         # Mark as delivered
         self.delivered.add(msg_id)
+
+        # METRICS: Record delivery time
+        if msg_id not in self.message_metrics:
+            self.message_metrics[msg_id] = {"broadcast_time": None, "source": msg.source, "is_sender": False}
+        self.message_metrics[msg_id]["delivery_time"] = time.time()
+
         logger.info(f"[{self.id()}] DELIVER (direct from source) {msg_id} payload={msg.payload}")
 
         # MD.2: Send empty path to ALL neighbors to signal delivery
@@ -145,6 +193,10 @@ class Dolev(Algorithm):
             if str(peer.peer_id) in self.neighbour_ids:
                 await self._apply_delay()
                 await peer.dolev(empty_msg)
+            await self._apply_delay()
+            await peer.dolev(empty_msg)
+            self.total_messages_sent += 1  # METRICS: Count empty path sends
+            self.empty_paths_sent += 1
 
         # Mark that we've forwarded empty path
         self.forwarded_empty.add(msg_id)
@@ -222,6 +274,8 @@ class Dolev(Algorithm):
                         path=new_path,
                     )
                 )
+                self.total_messages_sent += 1  # METRICS: Count forwarded messages
+                self.messages_forwarded += 1
         await self.deliver(msg)
 
     # check if can deliver
@@ -238,6 +292,11 @@ class Dolev(Algorithm):
             logger.info(f"[{self.id()}] DELIVER {msg_id} payload={msg.payload}")
             self.delivered.add(msg_id)
 
+            # METRICS: Record delivery time
+            if msg_id not in self.message_metrics:
+                self.message_metrics[msg_id] = {"broadcast_time": None, "source": msg.source, "is_sender": False}
+            self.message_metrics[msg_id]["delivery_time"] = time.time()
+
             # MD.2 & MD.3: Send empty path to neighbors (excluding those who already delivered)
             empty_msg = DMsg(
                 msg_id=msg_id,
@@ -253,6 +312,8 @@ class Dolev(Algorithm):
                 if peer_str in self.neighbour_ids and peer_str not in delivered_neighbors:
                     await self._apply_delay()
                     await peer.dolev(empty_msg)
+                    self.total_messages_sent += 1  # METRICS: Count empty path sends
+                    self.empty_paths_sent += 1
 
             # Mark that we've forwarded empty path
             self.forwarded_empty.add(msg_id)
