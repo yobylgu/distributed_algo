@@ -1,0 +1,146 @@
+version: '3.9'
+services:
+  n0:
+    build: .
+    volumes: &id001
+    - ./configs:/app/configs
+    - ./logs:/app/logs
+    networks: &id002
+    - dolev_network
+    environment: &id003
+      PYTHONUNBUFFERED: '1'
+      TERM: dumb
+      NO_COLOR: '1'
+    container_name: n0
+    hostname: n0
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n0 -v > /app/logs/n0.txt 2>&1"
+  n1:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n1
+    hostname: n1
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n1 -v > /app/logs/n1.txt 2>&1"
+  n2:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n2
+    hostname: n2
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n2 -v > /app/logs/n2.txt 2>&1"
+  n3:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n3
+    hostname: n3
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n3 -v > /app/logs/n3.txt 2>&1"
+  n4:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n4
+    hostname: n4
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n4 -v > /app/logs/n4.txt 2>&1"
+  n5:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n5
+    hostname: n5
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n5 -v > /app/logs/n5.txt 2>&1"
+  n6:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n6
+    hostname: n6
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n6 -v > /app/logs/n6.txt 2>&1"
+  n7:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n7
+    hostname: n7
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n7 -v > /app/logs/n7.txt 2>&1"
+  n8:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n8
+    hostname: n8
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n8 -v > /app/logs/n8.txt 2>&1"
+  n9:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n9
+    hostname: n9
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n9 -v > /app/logs/n9.txt 2>&1"
+  n10:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n10
+    hostname: n10
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n10 -v > /app/logs/n10.txt 2>&1"
+  n11:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n11
+    hostname: n11
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n11 -v > /app/logs/n11.txt 2>&1"
+  n12:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n12
+    hostname: n12
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n12 -v > /app/logs/n12.txt 2>&1"
+  n13:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n13
+    hostname: n13
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n13 -v > /app/logs/n13.txt 2>&1"
+  n14:
+    build: .
+    volumes: *id001
+    networks: *id002
+    environment: *id003
+    container_name: n14
+    hostname: n14
+    command: sh -c "python -m distbench.main -c ${CONFIG_FILE} -a dolev --mode network
+      --id n14 -v > /app/logs/n14.txt 2>&1"
+networks:
+  dolev_network:
+    driver: bridge

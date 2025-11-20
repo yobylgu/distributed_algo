@@ -1,110 +1,71 @@
-version: "3.9"
+x-common-service: &common-service
+  build: .
+  volumes:
+    - ./configs:/app/configs
+    - ./logs:/app/logs
+  networks:
+    - dolev_network
+  environment:
+    PYTHONUNBUFFERED: "1"
+    TERM: dumb
+    NO_COLOR: "1"
 
 services:
   n0:
-    build: .
+    <<: *common-service
     container_name: n0
     hostname: n0
     command: >
-      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      sh -c "python -m distbench.main -c ${CONFIG_FILE}
       -a dolev --mode network --id n0 -v > /app/logs/n0.txt 2>&1"
-    volumes:
-      - ./configs:/app/configs
-      - ./logs:/app/logs
-    networks:
-      - dolev_network
-    environment:
-      - PYTHONUNBUFFERED=1
 
   n1:
-    build: .
+    <<: *common-service
     container_name: n1
     hostname: n1
     command: >
-      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      sh -c "python -m distbench.main -c ${CONFIG_FILE}
       -a dolev --mode network --id n1 -v > /app/logs/n1.txt 2>&1"
-    volumes:
-      - ./configs:/app/configs
-      - ./logs:/app/logs
-    networks:
-      - dolev_network
-    environment:
-      - PYTHONUNBUFFERED=1
 
   n2:
-    build: .
+    <<: *common-service
     container_name: n2
     hostname: n2
     command: >
-      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      sh -c "python -m distbench.main -c ${CONFIG_FILE}
       -a dolev --mode network --id n2 -v > /app/logs/n2.txt 2>&1"
-    volumes:
-      - ./configs:/app/configs
-      - ./logs:/app/logs
-    networks:
-      - dolev_network
-    environment:
-      - PYTHONUNBUFFERED=1
 
   n3:
-    build: .
+    <<: *common-service
     container_name: n3
     hostname: n3
     command: >
-      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      sh -c "python -m distbench.main -c ${CONFIG_FILE}
       -a dolev --mode network --id n3 -v > /app/logs/n3.txt 2>&1"
-    volumes:
-      - ./configs:/app/configs
-      - ./logs:/app/logs
-    networks:
-      - dolev_network
-    environment:
-      - PYTHONUNBUFFERED=1
 
   n4:
-    build: .
+    <<: *common-service
     container_name: n4
     hostname: n4
     command: >
-      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      sh -c "python -m distbench.main -c ${CONFIG_FILE}
       -a dolev --mode network --id n4 -v > /app/logs/n4.txt 2>&1"
-    volumes:
-      - ./configs:/app/configs
-      - ./logs:/app/logs
-    networks:
-      - dolev_network
-    environment:
-      - PYTHONUNBUFFERED=1
 
   n5:
-    build: .
+    <<: *common-service
     container_name: n5
     hostname: n5
     command: >
-      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      sh -c "python -m distbench.main -c ${CONFIG_FILE}
       -a dolev --mode network --id n5 -v > /app/logs/n5.txt 2>&1"
-    volumes:
-      - ./configs:/app/configs
-      - ./logs:/app/logs
-    networks:
-      - dolev_network
-    environment:
-      - PYTHONUNBUFFERED=1
 
   n6:
-    build: .
+    <<: *common-service
     container_name: n6
     hostname: n6
     command: >
-      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      sh -c "python -m distbench.main -c ${CONFIG_FILE}
       -a dolev --mode network --id n6 -v > /app/logs/n6.txt 2>&1"
-    volumes:
-      - ./configs:/app/configs
-      - ./logs:/app/logs
-    networks:
-      - dolev_network
-    environment:
-      - PYTHONUNBUFFERED=1
 
 networks:
   dolev_network:
