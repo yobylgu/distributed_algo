@@ -1,0 +1,95 @@
+services:
+  n0:
+    build: .
+    container_name: n0
+    hostname: n0
+    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n0 -v
+    volumes:
+      - ./configs:/app/configs
+      - ./logs:/app/logs
+    networks:
+      - dolev_network
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  n1:
+    build: .
+    container_name: n1
+    hostname: n1
+    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n1 -v
+    volumes:
+      - ./configs:/app/configs
+      - ./logs:/app/logs
+    networks:
+      - dolev_network
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  n2:
+    build: .
+    container_name: n2
+    hostname: n2
+    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n2 -v
+    volumes:
+      - ./configs:/app/configs
+      - ./logs:/app/logs
+    networks:
+      - dolev_network
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  n3:
+    build: .
+    container_name: n3
+    hostname: n3
+    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n3 -v
+    volumes:
+      - ./configs:/app/configs
+      - ./logs:/app/logs
+    networks:
+      - dolev_network
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  n4:
+    build: .
+    container_name: n4
+    hostname: n4
+    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n4 -v
+    volumes:
+      - ./configs:/app/configs
+      - ./logs:/app/logs
+    networks:
+      - dolev_network
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  n5:
+    build: .
+    container_name: n5
+    hostname: n5
+    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n5 -v
+    volumes:
+      - ./configs:/app/configs
+      - ./logs:/app/logs
+    networks:
+      - dolev_network
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  n6:
+    build: .
+    container_name: n6
+    hostname: n6
+    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n6 -v
+    volumes:
+      - ./configs:/app/configs
+      - ./logs:/app/logs
+    networks:
+      - dolev_network
+    environment:
+      - PYTHONUNBUFFERED=1
+
+networks:
+  dolev_network:
+    driver: bridge

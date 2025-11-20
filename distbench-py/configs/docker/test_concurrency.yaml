@@ -1,0 +1,70 @@
+n0:
+  host: n0
+  port: 10000
+  neighbours: []
+  f: 2
+  is_sender: true
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: msg_A
+  behavior_mode: HONEST
+n1:
+  host: n1
+  port: 10000
+  neighbours: []
+  f: 2
+  is_sender: true
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: msg_B
+  behavior_mode: HONEST
+n2:
+  host: n2
+  port: 10000
+  neighbours: []
+  f: 2
+  is_sender: true
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: msg_C
+  behavior_mode: HONEST
+n3:
+  host: n3
+  port: 10000
+  neighbours: []
+  f: 2
+  is_sender: false
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: hello
+  behavior_mode: HONEST
+n4:
+  host: n4
+  port: 10000
+  neighbours: []
+  f: 2
+  is_sender: false
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: hello
+  behavior_mode: HONEST
+n5:
+  host: n5
+  port: 10000
+  neighbours: []
+  f: 2
+  is_sender: false
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: hello
+  behavior_mode: HONEST
+n6:
+  host: n6
+  port: 10000
+  neighbours: []
+  f: 2
+  is_sender: false
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: hello
+  behavior_mode: HONEST
