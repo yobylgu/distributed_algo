@@ -34,6 +34,7 @@ class Dolev(Algorithm):
         self.peers = peers
         self.paths: Dict[str, List[List[str]]] = {}
         self.delivered: Set[str] = set()
+        self.neighbour_ids: Set[str] = set()
         # MD.4: Track which neighbors have delivered each message
         self.neighbor_delivered: Dict[str, Set[str]] = {}
         # MD.2/MD.5: Track messages for which we've forwarded empty paths
@@ -44,6 +45,9 @@ class Dolev(Algorithm):
 
     async def on_start(self) -> None:
         logger.info(f"[{self.id()}] starting with f={self.f}, behavior={self.behavior_mode}")
+        if not self.neighbour_ids:
+            self.neighbour_ids = {str(pid) for pid in self.community.neighbours}
+            print(f"✔ DOLEV LOADED NEIGHBOURS: {self.neighbour_ids}")
 
         # BYZANTINE_SPOOF: Send fake message claiming another node is the source
         if self.behavior_mode == "BYZANTINE_SPOOF":
@@ -62,8 +66,9 @@ class Dolev(Algorithm):
                 )
 
                 for peer in self.peers.values():
-                    await self._apply_delay()
-                    await peer.dolev(fake_msg)
+                    if str(peer.peer_id) in self.neighbour_ids:
+                        await self._apply_delay()
+                        await peer.dolev(fake_msg)
 
         if self.is_sender:
             # Send multiple messages for volume testing
@@ -106,8 +111,9 @@ class Dolev(Algorithm):
         logger.info(f"[{self.id()}] BROADCAST START FOR -----> {msg_id} payload={msg.payload}")
 
         for peer in self.peers.values():
-            await self._apply_delay()
-            await peer.dolev(msg)
+            if str(peer.peer_id) in self.neighbour_ids:
+                await self._apply_delay()
+                await peer.dolev(msg)
 
         self.delivered.add(msg_id)
 
@@ -136,8 +142,9 @@ class Dolev(Algorithm):
         )
 
         for peer in self.peers.values():
-            await self._apply_delay()
-            await peer.dolev(empty_msg)
+            if str(peer.peer_id) in self.neighbour_ids:
+                await self._apply_delay()
+                await peer.dolev(empty_msg)
 
         # Mark that we've forwarded empty path
         self.forwarded_empty.add(msg_id)
@@ -157,6 +164,10 @@ class Dolev(Algorithm):
 
         msg_id = msg.msg_id
         src_id = str(src)
+
+        #skip non neighbour
+        if src_id not in self.neighbour_ids:
+            return
 
         # MD.5: Stop processing if already delivered AND forwarded empty
         if msg_id in self.delivered and msg_id in self.forwarded_empty:
@@ -238,8 +249,8 @@ class Dolev(Algorithm):
             delivered_neighbors = self.neighbor_delivered.get(msg_id, set())
             for peer in self.peers.values():
                 peer_str = str(peer.peer_id)
-                # MD.3: Skip neighbors who already delivered
-                if peer_str not in delivered_neighbors:
+
+                if peer_str in self.neighbour_ids and peer_str not in delivered_neighbors:
                     await self._apply_delay()
                     await peer.dolev(empty_msg)
 

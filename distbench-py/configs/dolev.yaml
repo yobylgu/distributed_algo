@@ -1,12 +1,70 @@
-n1:
-  f: 2
+n0:
+  host: "n0"
+  port: 5000
+  algorithm: dolev
+  f: 3
   is_sender: true
-  payload: "hello"
+  neighbours: ["n1", "n9"]
+
+n1:
+  host: "n1"
+  port: 5001
+  algorithm: dolev
+  f: 3
+  neighbours: ["n0", "n2"]
+
 n2:
-  f: 2
+  host: "n2"
+  port: 5002
+  algorithm: dolev
+  f: 3
+  neighbours: ["n1", "n3"]
+
 n3:
-  f: 2
+  host: "n3"
+  port: 5003
+  algorithm: dolev
+  f: 3
+  neighbours: ["n2", "n4"]
+
 n4:
-  f: 2
+  host: "n4"
+  port: 5004
+  algorithm: dolev
+  f: 3
+  neighbours: ["n3", "n5"]
+
 n5:
-  f: 2
+  host: "n5"
+  port: 5005
+  algorithm: dolev
+  f: 3
+  neighbours: ["n4", "n6"]
+
+n6:
+  host: "n6"
+  port: 5006
+  algorithm: dolev
+  f: 3
+  neighbours: ["n5", "n7"]
+
+n7:
+  host: "n7"
+  port: 5007
+  algorithm: dolev
+  f: 3
+  neighbours: ["n6", "n8"]
+
+n8:
+  host: "n8"
+  port: 5008
+  algorithm: dolev
+  f: 3
+  neighbours: ["n7", "n9"]
+
+n9:
+  host: "n9"
+  port: 5009
+  algorithm: dolev
+  f: 3
+  neighbours: ["n8", "n0"]

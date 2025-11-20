@@ -1,9 +1,13 @@
+version: "3.9"
+
 services:
   n0:
     build: .
     container_name: n0
     hostname: n0
-    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n0 -v
+    command: >
+      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      -a dolev --mode network --id n0 -v > /app/logs/n0.txt 2>&1"
     volumes:
       - ./configs:/app/configs
       - ./logs:/app/logs
@@ -16,7 +20,9 @@ services:
     build: .
     container_name: n1
     hostname: n1
-    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n1 -v
+    command: >
+      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      -a dolev --mode network --id n1 -v > /app/logs/n1.txt 2>&1"
     volumes:
       - ./configs:/app/configs
       - ./logs:/app/logs
@@ -29,7 +35,9 @@ services:
     build: .
     container_name: n2
     hostname: n2
-    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n2 -v
+    command: >
+      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      -a dolev --mode network --id n2 -v > /app/logs/n2.txt 2>&1"
     volumes:
       - ./configs:/app/configs
       - ./logs:/app/logs
@@ -42,7 +50,9 @@ services:
     build: .
     container_name: n3
     hostname: n3
-    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n3 -v
+    command: >
+      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      -a dolev --mode network --id n3 -v > /app/logs/n3.txt 2>&1"
     volumes:
       - ./configs:/app/configs
       - ./logs:/app/logs
@@ -55,7 +65,9 @@ services:
     build: .
     container_name: n4
     hostname: n4
-    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n4 -v
+    command: >
+      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      -a dolev --mode network --id n4 -v > /app/logs/n4.txt 2>&1"
     volumes:
       - ./configs:/app/configs
       - ./logs:/app/logs
@@ -68,7 +80,9 @@ services:
     build: .
     container_name: n5
     hostname: n5
-    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n5 -v
+    command: >
+      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      -a dolev --mode network --id n5 -v > /app/logs/n5.txt 2>&1"
     volumes:
       - ./configs:/app/configs
       - ./logs:/app/logs
@@ -81,7 +95,9 @@ services:
     build: .
     container_name: n6
     hostname: n6
-    command: python -m distbench.main -c /app/configs/docker/test_concurrency.yaml -a dolev --mode network --id n6 -v
+    command: >
+      sh -c "python -m distbench.main -c /app/configs/docker/test_concurrency.yaml
+      -a dolev --mode network --id n6 -v > /app/logs/n6.txt 2>&1"
     volumes:
       - ./configs:/app/configs
       - ./logs:/app/logs
