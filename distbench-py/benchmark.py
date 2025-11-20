@@ -187,21 +187,10 @@ def run_docker_benchmark(config_name: str, N: int, timeout: int = 60) -> List[st
 
         logs = result.stdout + result.stderr
 
-        # Clean up
-        subprocess.run(
-            ["docker", "compose", "-f", "docker-compose-benchmark.yaml", "down"],
-            capture_output=True,
-            timeout=10
-        )
-
         return logs.split("\n")
 
     except subprocess.TimeoutExpired:
         print(f"  WARNING: Benchmark {config_name} timed out")
-        subprocess.run(
-            ["docker", "compose", "-f", "docker-compose-benchmark.yaml", "down"],
-            capture_output=True
-        )
         return []
 
     finally:
