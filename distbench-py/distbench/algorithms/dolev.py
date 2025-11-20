@@ -26,6 +26,8 @@ class Dolev(Algorithm):
     payload: str = config_field(default="hello")
     delay_min: float = config_field(default=0.0)
     delay_max: float = config_field(default=0.0)
+    behavior_mode: str = config_field(default="HONEST")  # HONEST, BYZANTINE_SILENT, BYZANTINE_SPOOF
+    num_messages: int = config_field(default=1)  # Number of messages to send (for volume testing)
 
     def __init__(self, config: Dict[str, Any], peers: Dict[PeerId, Any]):
         super().__init__()
@@ -38,9 +40,35 @@ class Dolev(Algorithm):
         self.forwarded_empty: Set[str] = set()
 
     async def on_start(self) -> None:
-        logger.info(f"[{self.id()}] starting with f={self.f}")
+        logger.info(f"[{self.id()}] starting with f={self.f}, behavior={self.behavior_mode}")
+
+        # BYZANTINE_SPOOF: Send fake message claiming another node is the source
+        if self.behavior_mode == "BYZANTINE_SPOOF":
+            # Choose a random peer to spoof as the source
+            peer_ids = [str(p.peer_id) for p in self.peers.values()]
+            if peer_ids:
+                fake_source = peer_ids[0]  # Spoof first peer
+                fake_msg_id = str(uuid.uuid4())
+                logger.info(f"[{self.id()}] BYZANTINE SPOOF: Sending fake message claiming source={fake_source}")
+
+                fake_msg = DMsg(
+                    msg_id=fake_msg_id,
+                    source=fake_source,  # Lying about the source!
+                    payload="SPOOFED MESSAGE",
+                    path=[],
+                )
+
+                for peer in self.peers.values():
+                    await self._apply_delay()
+                    await peer.dolev(fake_msg)
+
         if self.is_sender:
-            await self.broadcast_message()
+            # Send multiple messages for volume testing
+            for i in range(self.num_messages):
+                await self.broadcast_message(suffix=f"_{i}" if self.num_messages > 1 else "")
+                # Add small delay between messages
+                if i < self.num_messages - 1:
+                    await asyncio.sleep(0.1)
 
     async def on_exit(self) -> None:
         logger.info(f"[{self.id()}] finished")
@@ -54,18 +82,18 @@ class Dolev(Algorithm):
             delay = random.uniform(self.delay_min, self.delay_max)
             await asyncio.sleep(delay)
 
-    async def broadcast_message(self) -> None:
+    async def broadcast_message(self, suffix: str = "") -> None:
         msg_id = str(uuid.uuid4())
         self_id = str(self.id())
 
         msg = DMsg(
             msg_id=msg_id,
             source=self_id,
-            payload=self.payload,
+            payload=self.payload + suffix,
             path=[],
         )
 
-        logger.info(f"[{self.id()}] BROADCAST START FOR -----> {msg_id}")
+        logger.info(f"[{self.id()}] BROADCAST START FOR -----> {msg_id} payload={msg.payload}")
 
         for peer in self.peers.values():
             await self._apply_delay()
@@ -112,6 +140,11 @@ class Dolev(Algorithm):
 
     @handler
     async def dolev(self, src: PeerId, msg: DMsg) -> None:
+        # BYZANTINE_SILENT: Drop all messages
+        if self.behavior_mode == "BYZANTINE_SILENT":
+            logger.info(f"[{self.id()}] BYZANTINE SILENT: Dropping message from {src}")
+            return
+
         msg_id = msg.msg_id
         src_id = str(src)
 

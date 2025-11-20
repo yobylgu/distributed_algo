@@ -1,0 +1,56 @@
+n0:
+  neighbours: []
+  f: 2
+  is_sender: true
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: msg_A
+  behavior_mode: HONEST
+n1:
+  neighbours: []
+  f: 2
+  is_sender: true
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: msg_B
+  behavior_mode: HONEST
+n2:
+  neighbours: []
+  f: 2
+  is_sender: true
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: msg_C
+  behavior_mode: HONEST
+n3:
+  neighbours: []
+  f: 2
+  is_sender: false
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: hello
+  behavior_mode: HONEST
+n4:
+  neighbours: []
+  f: 2
+  is_sender: false
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: hello
+  behavior_mode: HONEST
+n5:
+  neighbours: []
+  f: 2
+  is_sender: false
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: hello
+  behavior_mode: HONEST
+n6:
+  neighbours: []
+  f: 2
+  is_sender: false
+  delay_min: 0.01
+  delay_max: 0.05
+  payload: hello
+  behavior_mode: HONEST
