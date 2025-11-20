@@ -1,6 +1,7 @@
 node1:
   neighbours:
     - node2
+    - node 4
   node_id: 1
 
 node2:

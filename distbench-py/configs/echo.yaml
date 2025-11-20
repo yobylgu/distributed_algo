@@ -13,3 +13,4 @@ node3:
   neighbours:
     - node1
   start_node: false
+

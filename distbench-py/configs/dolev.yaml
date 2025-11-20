@@ -1,60 +1,41 @@
 n0:
   algorithm: dolev
-  dolev:
-    f: 3
-    is_sender: true
-    neighbours: ["n1", "n9"]
+  neighbours: ["n1","n9"]
+  is_sender: true
 
 n1:
   algorithm: dolev
-  dolev:
-    f: 3
-    neighbours: ["n0", "n2"]
+  neighbours: ["n0","n2"]
 
 n2:
   algorithm: dolev
-  dolev:
-    f: 3
-    neighbours: ["n1", "n3"]
+
+  neighbours: ["n1","n3"]
 
 n3:
   algorithm: dolev
-  dolev:
-    f: 3
-    neighbours: ["n2", "n4"]
+  neighbours: ["n2","n4"]
 
 n4:
   algorithm: dolev
-  dolev:
-    f: 3
-    neighbours: ["n3", "n5"]
+  neighbours: ["n3","n5"]
 
 n5:
   algorithm: dolev
-  dolev:
-    f: 3
-    neighbours: ["n4", "n6"]
+  neighbours: ["n4","n6"]
 
 n6:
   algorithm: dolev
-  dolev:
-    f: 3
-    neighbours: ["n5", "n7"]
+  neighbours: ["n5","n7"]
 
 n7:
   algorithm: dolev
-  dolev:
-    f: 3
-    neighbours: ["n6", "n8"]
+  neighbours: ["n6","n8"]
 
 n8:
   algorithm: dolev
-  dolev:
-    f: 3
-    neighbours: ["n7", "n9"]
+  neighbours: ["n7","n9"]
 
 n9:
   algorithm: dolev
-  dolev:
-    f: 3
-    neighbours: ["n8", "n0"]
+  neighbours: ["n8","n0"]
