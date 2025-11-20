@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import random
 import uuid
 from typing import Dict, Any, List, Set
 
@@ -22,6 +24,8 @@ class Dolev(Algorithm):
     f: int = config_field(required=True)
     is_sender: bool = config_field(default=False)
     payload: str = config_field(default="hello")
+    delay_min: float = config_field(default=0.0)
+    delay_max: float = config_field(default=0.0)
 
     def __init__(self, config: Dict[str, Any], peers: Dict[PeerId, Any]):
         super().__init__()
@@ -44,6 +48,12 @@ class Dolev(Algorithm):
     async def report(self) -> Dict[str, str]:
         return {"delivered_count": str(len(self.delivered))}
 
+    async def _apply_delay(self) -> None:
+        """Apply random network delay if configured."""
+        if self.delay_max > 0:
+            delay = random.uniform(self.delay_min, self.delay_max)
+            await asyncio.sleep(delay)
+
     async def broadcast_message(self) -> None:
         msg_id = str(uuid.uuid4())
         self_id = str(self.id())
@@ -58,6 +68,7 @@ class Dolev(Algorithm):
         logger.info(f"[{self.id()}] BROADCAST START FOR -----> {msg_id}")
 
         for peer in self.peers.values():
+            await self._apply_delay()
             await peer.dolev(msg)
 
         self.delivered.add(msg_id)
@@ -87,6 +98,7 @@ class Dolev(Algorithm):
         )
 
         for peer in self.peers.values():
+            await self._apply_delay()
             await peer.dolev(empty_msg)
 
         # Mark that we've forwarded empty path
@@ -140,9 +152,14 @@ class Dolev(Algorithm):
         if new_path not in self.paths[msg_id]:
             self.paths[msg_id].append(new_path)
 
+        # MD.3: Don't forward to neighbors who have already delivered
+        delivered_neighbors = self.neighbor_delivered.get(msg_id, set())
+
         for peer in self.peers.values():
             peer_str = str(peer.peer_id)
-            if peer_str not in new_path:
+            # Skip if peer is in path OR has already delivered (MD.3)
+            if peer_str not in new_path and peer_str not in delivered_neighbors:
+                await self._apply_delay()
                 await peer.dolev(
                     DMsg(
                         msg_id=msg_id,
@@ -167,7 +184,7 @@ class Dolev(Algorithm):
             logger.info(f"[{self.id()}] DELIVER {msg_id} payload={msg.payload}")
             self.delivered.add(msg_id)
 
-            # MD.2: Send empty path to all neighbors after delivery
+            # MD.2 & MD.3: Send empty path to neighbors (excluding those who already delivered)
             empty_msg = DMsg(
                 msg_id=msg_id,
                 source=msg.source,
@@ -175,8 +192,13 @@ class Dolev(Algorithm):
                 path=[]
             )
 
+            delivered_neighbors = self.neighbor_delivered.get(msg_id, set())
             for peer in self.peers.values():
-                await peer.dolev(empty_msg)
+                peer_str = str(peer.peer_id)
+                # MD.3: Skip neighbors who already delivered
+                if peer_str not in delivered_neighbors:
+                    await self._apply_delay()
+                    await peer.dolev(empty_msg)
 
             # Mark that we've forwarded empty path
             self.forwarded_empty.add(msg_id)
