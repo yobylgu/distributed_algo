@@ -9,6 +9,7 @@ collects metrics, and outputs results for analysis and plotting.
 import asyncio
 import json
 import os
+import random
 import re
 import subprocess
 import sys
@@ -37,6 +38,28 @@ BENCHMARKS = {
     ],
 }
 
+def generate_random_topology(n, f):
+    """
+    Generates a random (2f+1)-connected topology with bidirectional edges.
+    """
+    min_deg = 2 * f + 1
+    if min_deg >= n:
+        raise ValueError("2f+1 must be < n for Dolev connectivity")
+
+    neighbours = {f"n{i}": set() for i in range(n)}
+
+    for i in range(n):
+        node = f"n{i}"
+        candidates = [f"n{j}" for j in range(n) if j != i]
+        chosen = random.sample(candidates, min_deg)
+        neighbours[node].update(chosen)
+
+    for a, neighs in neighbours.items():
+        for b in neighs:
+            neighbours[b].add(a)
+
+    return neighbours
+
 def generate_config(N: int, f: int, senders: int, byzantine: int) -> Dict[str, Any]:
     """
     Generate a YAML configuration for N nodes with specified parameters.
@@ -52,16 +75,19 @@ def generate_config(N: int, f: int, senders: int, byzantine: int) -> Dict[str, A
     """
     config = {}
 
+    topology = generate_random_topology(N, f)
+
     for i in range(N):
         node_id = f"n{i}"
         is_sender = i < senders
         is_byzantine = i >= (N - byzantine)
 
         config[node_id] = {
-            "neighbours": [],  # Fully connected
+            "neighbours": [],
             "f": f,
             "is_sender": is_sender,
             "payload": f"msg_from_{node_id}" if is_sender else "hello",
+            "neighbours": sorted(list(topology[node_id])),
             "delay_min": 0.01,
             "delay_max": 0.05,
             "behavior_mode": "BYZANTINE_SILENT" if is_byzantine else "HONEST",
@@ -183,6 +209,30 @@ def run_docker_benchmark(config_name: str, N: int, timeout: int = 60) -> List[st
         if compose_path.exists():
             compose_path.unlink()
 
+def save_node_logs(config_name: str, N: int):
+    """
+    Fetch logs from each node container and save them to:
+      logs/benchmark/<experiment>/nX.txt
+    """
+    outdir = Path(f"logs/benchmark/{config_name}")
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    for i in range(N):
+        node_id = f"n{i}"
+        log_path = outdir / f"{node_id}.txt"
+
+        # fetch logs
+        result = subprocess.run(
+            ["docker", "logs", node_id],
+            capture_output=True,
+            text=True
+        )
+
+        with open(log_path, "w") as f:
+            f.write(result.stdout)
+            f.write(result.stderr)
+
+
 
 def parse_metrics_from_logs(logs: List[str]) -> List[Dict[str, Any]]:
     """
@@ -278,7 +328,7 @@ def run_benchmark_suite():
 
             # Run benchmark
             logs = run_docker_benchmark(name, N, timeout=30)
-
+            save_node_logs(name, N)
             # Parse metrics
             metrics = parse_metrics_from_logs(logs)
 
