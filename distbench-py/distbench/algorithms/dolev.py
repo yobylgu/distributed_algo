@@ -9,7 +9,6 @@ from distbench.decorators import message, handler, config_field, distbench
 logger = logging.getLogger(__name__)
 
 
-# most basic struct i could think of
 @message
 class DMsg:
     msg_id: str
@@ -20,6 +19,10 @@ class DMsg:
 
 @distbench
 class Dolev(Algorithm):
+
+    # Field names MUST match YAML keys *exactly*
+    neighbours: List[str] = config_field(required=True)
+
     f: int = config_field(required=True)
     is_sender: bool = config_field(default=False)
     payload: str = config_field(default="hello")
@@ -27,16 +30,19 @@ class Dolev(Algorithm):
 
     def __init__(self, config: Dict[str, Any], peers: Dict[PeerId, Any]):
         super().__init__()
+
         self.peers = peers
+
+        # DistBench injects YAML-configured fields as attributes
+        self.neighbour_ids: Set[str] = set(self.neighbours)
+
         self.paths: Dict[str, List[List[str]]] = {}
         self.delivered: Set[str] = set()
-        # MD.4: Track which neighbors have delivered each message
-        self.neighbor_delivered: Dict[str, Set[str]] = {}
-        # MD.2/MD.5: Track messages for which we've forwarded empty paths
+        self.neighbour_delivered: Dict[str, Set[str]] = {}
         self.forwarded_empty: Set[str] = set()
 
     async def on_start(self) -> None:
-        logger.info(f"[{self.id()}] starting with f={self.f}")
+        logger.info(f"[{self.id()}] starting with neighbours={self.neighbours}")
         if self.is_sender:
             await self.broadcast_message()
 
@@ -54,150 +60,102 @@ class Dolev(Algorithm):
             msg_id=msg_id,
             source=self_id,
             payload=self.payload,
-            path=[],
+            path=[]
         )
 
-        logger.info(f"[{self.id()}] BROADCAST START FOR -----> {msg_id}")
+        logger.info(f"[{self.id()}] BROADCAST START -----> {msg_id}")
 
         for peer in self.peers.values():
-            await peer.dolev(msg)
+            if str(peer.peer_id) in self.neighbour_ids:
+                await peer.dolev(msg)
 
         self.delivered.add(msg_id)
 
     async def delay(self):
         await asyncio.sleep(random.uniform(0, self.max_delay))
 
-    # ============== OPTIMIZATIONS ==============
-
-    # MD.1: Immediate delivery helper - only mark delivered and log
-    async def _immediate_deliver(self, msg: DMsg) -> None:
-        """
-        MD.1: Deliver message immediately when received directly from source.
-        MD.2 decoupled from MD.1 cause it forwarded empty paths continuosly
-        """
+    async def _immediate_deliver(self, msg: DMsg):
         msg_id = msg.msg_id
-
-        if msg_id in self.delivered:
-            return
-        self.delivered.add(msg_id)
-        logger.info(f"[{self.id()}] DELIVER (direct from source) {msg_id} payload={msg.payload}")
-
+        if msg_id not in self.delivered:
+            self.delivered.add(msg_id)
+            logger.info(f"[{self.id()}] DELIVER (direct) {msg_id}")
 
     @handler
     async def dolev(self, src: PeerId, msg: DMsg) -> None:
         msg_id = msg.msg_id
         src_id = str(src)
 
-        # MD.5: Stop processing if already delivered AND forwarded empty
+        if src_id not in self.neighbour_ids:
+            return
+
         if msg_id in self.delivered and msg_id in self.forwarded_empty:
             return
 
-        # MD.1: Direct delivery from source
-        if src_id == msg.source:
-            if msg_id not in self.delivered:
-                await self._immediate_deliver(msg)
+        if src_id == msg.source and msg_id not in self.delivered:
+            await self._immediate_deliver(msg)
 
-
-        # MD.4: Handle empty path (delivery signal from neighbor), but NOT from source
         if not msg.path and src_id != msg.source:
-            if msg_id not in self.neighbor_delivered:
-                self.neighbor_delivered[msg_id] = set()
-            self.neighbor_delivered[msg_id].add(src_id)
-            logger.info(f"[{self.id()}] recv empty path from {src_id} for {msg_id} (neighbor delivered)")
+            self.neighbour_delivered.setdefault(msg_id, set()).add(src_id)
+            logger.info(f"[{self.id()}] recv empty from {src_id}")
             return
 
         new_path = msg.path + [src_id]
-
         logger.info(f"[{self.id()}] recv {msg_id} via {new_path}")
 
-        if msg_id not in self.paths:
-            self.paths[msg_id] = []
+        self.paths.setdefault(msg_id, [])
+        delivered_neighbours = self.neighbour_delivered.get(msg_id, set())
 
-        # MD.4 extension: Skip paths containing nodes that have already delivered
-        delivered_neighbors = self.neighbor_delivered.get(msg_id, set())
-        path_contains_delivered = any(node in delivered_neighbors for node in new_path)
-
-        if path_contains_delivered:
-            return  # Don't store or forward tainted paths
+        if any(n in delivered_neighbours for n in new_path):
+            return
 
         if new_path not in self.paths[msg_id]:
             self.paths[msg_id].append(new_path)
 
-        delivered_neighbors = self.neighbor_delivered.get(msg_id, set())
-
         for peer in self.peers.values():
-            peer_str = str(peer.peer_id)
-            # MD.3: Avoid sending to neighbors that have delivered (according to empty-path info)
-            if peer_str in delivered_neighbors:
+            pid = str(peer.peer_id)
+            if pid not in self.neighbour_ids:
                 continue
-            if peer_str not in new_path:
+            if pid in delivered_neighbours:
+                continue
+            if pid not in new_path:
                 await self.delay()
-                await peer.dolev(
-                    DMsg(
-                        msg_id=msg_id,
-                        source=msg.source,
-                        payload=msg.payload,
-                        path=new_path,
-                    )
-                )
+                await peer.dolev(DMsg(msg_id, msg.source, msg.payload, new_path))
+
         await self.deliver(msg)
 
     async def deliver(self, msg: DMsg) -> None:
         msg_id = msg.msg_id
-
         paths = self.paths.get(msg_id, [])
 
-        # Step 1: if we have not delivered yet, see if we now have f+1 disjoint paths
         if msg_id not in self.delivered:
             if not self.disPaths(paths, msg.source):
                 return
-            logger.info(f"[{self.id()}] DELIVER {msg_id} payload={msg.payload}")
+            logger.info(f"[{self.id()}] DELIVER {msg_id}")
             self.delivered.add(msg_id)
 
-        # Step 2: MD.2 – send empty path only once
         if msg_id in self.forwarded_empty:
             return
 
-        empty_msg = DMsg(
-            msg_id=msg_id,
-            source=msg.source,
-            payload=msg.payload,
-            path=[]
-        )
+        empty = DMsg(msg_id, msg.source, msg.payload, [])
 
         for peer in self.peers.values():
-            await self.delay()
-            await peer.dolev(empty_msg)
+            if str(peer.peer_id) in self.neighbour_ids:
+                await self.delay()
+                await peer.dolev(empty)
 
         self.forwarded_empty.add(msg_id)
+        self.paths.pop(msg_id, None)
 
-        if msg_id in self.paths:
-            del self.paths[msg_id]
-
-        return
-
-    # helper to check f+1 disjoint paths
     def disPaths(self, paths: List[List[str]], source: str) -> bool:
         needed = self.f + 1
         chosen: List[Set[str]] = []
-
-        # MD.4: Get nodes that have already delivered (to filter out their paths)
-        # Note: We need msg_id to check neighbor_delivered, but we don't have it here.
-        # The filtering is already done in path storage, so paths here are already clean.
-
-        for path in paths:
-            internal = set(path)
-            # sender and receiver cant be byzantine (assumed)
+        for p in paths:
+            internal = set(p)
             internal.discard(source)
             internal.discard(str(self.id()))
-
-            conflict = any(internal & used for used in chosen)
-            if conflict:
+            if any(internal & c for c in chosen):
                 continue
-
             chosen.append(internal)
-
             if len(chosen) >= needed:
                 return True
-
         return False
