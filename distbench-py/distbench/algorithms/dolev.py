@@ -1,3 +1,4 @@
+GLOBAL_F = 3
 import logging
 import uuid
 from typing import Dict, Any, List, Set
@@ -19,11 +20,6 @@ class DMsg:
 
 @distbench
 class Dolev(Algorithm):
-
-    # Field names MUST match YAML keys *exactly*
-    neighbours: List[str] = config_field(required=True)
-
-    f: int = config_field(required=True)
     is_sender: bool = config_field(default=False)
     payload: str = config_field(default="hello")
     max_delay: float = config_field(default=0.5)
@@ -33,16 +29,21 @@ class Dolev(Algorithm):
 
         self.peers = peers
 
-        # DistBench injects YAML-configured fields as attributes
-        self.neighbour_ids: Set[str] = set(self.neighbours)
+        self.neighbour_ids: Set[str] = set()
 
+        self.f = GLOBAL_F
         self.paths: Dict[str, List[List[str]]] = {}
         self.delivered: Set[str] = set()
-        self.neighbour_delivered: Dict[str, Set[str]] = {}
         self.forwarded_empty: Set[str] = set()
+        self.neighbour_delivered: Dict[str, Set[str]] = {}
 
-    async def on_start(self) -> None:
-        logger.info(f"[{self.id()}] starting with neighbours={self.neighbours}")
+    async def on_start(self):
+        if not self.neighbour_ids:
+            self.neighbour_ids = {str(pid) for pid in self.community.neighbours}
+            print("✔ DOLEV LOADED WITH NEIGHBOURS:", self.neighbour_ids)
+
+        logger.info(f"[{self.id()}] start neighbours={self.neighbour_ids}")
+
         if self.is_sender:
             await self.broadcast_message()
 
@@ -52,7 +53,7 @@ class Dolev(Algorithm):
     async def report(self) -> Dict[str, str]:
         return {"delivered_count": str(len(self.delivered))}
 
-    async def broadcast_message(self) -> None:
+    async def broadcast_message(self):
         msg_id = str(uuid.uuid4())
         self_id = str(self.id())
 
@@ -75,15 +76,14 @@ class Dolev(Algorithm):
         await asyncio.sleep(random.uniform(0, self.max_delay))
 
     async def _immediate_deliver(self, msg: DMsg):
-        msg_id = msg.msg_id
-        if msg_id not in self.delivered:
-            self.delivered.add(msg_id)
-            logger.info(f"[{self.id()}] DELIVER (direct) {msg_id}")
+        if msg.msg_id not in self.delivered:
+            self.delivered.add(msg.msg_id)
+            logger.info(f"[{self.id()}] DELIVER (direct) {msg.msg_id}")
 
     @handler
-    async def dolev(self, src: PeerId, msg: DMsg) -> None:
-        msg_id = msg.msg_id
+    async def dolev(self, src: PeerId, msg: DMsg):
         src_id = str(src)
+        msg_id = msg.msg_id
 
         if src_id not in self.neighbour_ids:
             return
@@ -123,7 +123,7 @@ class Dolev(Algorithm):
 
         await self.deliver(msg)
 
-    async def deliver(self, msg: DMsg) -> None:
+    async def deliver(self, msg: DMsg):
         msg_id = msg.msg_id
         paths = self.paths.get(msg_id, [])
 
@@ -153,7 +153,7 @@ class Dolev(Algorithm):
             internal = set(p)
             internal.discard(source)
             internal.discard(str(self.id()))
-            if any(internal & c for c in chosen):
+            if any(internal & used for used in chosen):
                 continue
             chosen.append(internal)
             if len(chosen) >= needed:

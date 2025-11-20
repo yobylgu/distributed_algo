@@ -105,3 +105,19 @@ services:
       dockerfile: docker/Dockerfile
     volumes:
       - ./configs:/configs
+      - ./logs:/logs
+    command: >
+      sh -c "distbench -c /configs/dolev10.yaml -a dolev --mode network --id n8
+      > /logs/n8.txt 2>&1"
+
+  n9:
+    container_name: n9
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ./configs:/configs
+      - ./logs:/logs
+    command: >
+      sh -c "distbench -c /configs/dolev10.yaml -a dolev --mode network --id n9
+      > /logs/n9.txt 2>&1"
