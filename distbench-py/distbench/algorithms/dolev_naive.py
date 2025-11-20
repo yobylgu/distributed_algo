@@ -44,7 +44,7 @@ class DolevNaive(Algorithm):
         self.start_time = time.time()
         self.total_messages_sent = 0          # All point-to-point sends
         self.messages_forwarded = 0           # Relay/forward count
-        self.empty_paths_sent = 0             # MD.2 optimization messages
+        self.empty_paths_sent = 0             # MD.2 optimization messages -> in naive dolev this remains 0
         self.message_metrics: Dict[str, Dict] = {}  # msg_id -> {broadcast_time, delivery_time, ...}
 
     async def on_start(self) -> None:
