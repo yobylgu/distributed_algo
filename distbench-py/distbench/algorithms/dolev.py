@@ -38,6 +38,9 @@ class Dolev(Algorithm):
         self.neighbor_delivered: Dict[str, Set[str]] = {}
         # MD.2/MD.5: Track messages for which we've forwarded empty paths
         self.forwarded_empty: Set[str] = set()
+        # Track total expected messages based on senders in the network
+        self.expected_messages: int = 0
+        self.messages_sent: int = 0
 
     async def on_start(self) -> None:
         logger.info(f"[{self.id()}] starting with f={self.f}, behavior={self.behavior_mode}")
@@ -66,9 +69,16 @@ class Dolev(Algorithm):
             # Send multiple messages for volume testing
             for i in range(self.num_messages):
                 await self.broadcast_message(suffix=f"_{i}" if self.num_messages > 1 else "")
+                self.messages_sent += 1
                 # Add small delay between messages
                 if i < self.num_messages - 1:
                     await asyncio.sleep(0.1)
+
+        # Wait a bit for messages to propagate, then terminate
+        # In a production system, you'd have a more sophisticated termination condition
+        await asyncio.sleep(2.0)
+        logger.info(f"[{self.id()}] Terminating. Delivered {len(self.delivered)} messages, sent {self.messages_sent}")
+        await self.terminate()
 
     async def on_exit(self) -> None:
         logger.info(f"[{self.id()}] finished")
@@ -239,8 +249,6 @@ class Dolev(Algorithm):
             # Clear stored paths for this message
             if msg_id in self.paths:
                 del self.paths[msg_id]
-
-            await self.terminate()
 
 
     # helper to check f+1 disjoint paths
