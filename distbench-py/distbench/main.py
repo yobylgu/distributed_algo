@@ -1,10 +1,9 @@
 """Main entry point and CLI for the distributed algorithms framework."""
 
 import asyncio
-import json
 import logging
-import sys
 import os
+import sys
 from typing import Any
 
 import click
@@ -110,7 +109,10 @@ def _get_format(format_name: str) -> Format:
 
 
 async def _run_nodes(
-    nodes: list[Node[Any, Any]], timeout: float, stop_event: asyncio.Event
+    nodes: list[Node[Any, Any]],
+    timeout: float,
+    stop_event: asyncio.Event,
+    startup_delay: int = 0,
 ) -> None:
     """Start and wait for a list of nodes to complete.
 
@@ -118,9 +120,10 @@ async def _run_nodes(
         nodes: List of nodes to run
         timeout: Maximum runtime in seconds
         stop_event: Event to signal shutdown
+        startup_delay: Delay in milliseconds before starting nodes
     """
     logger = logging.getLogger(__name__)
-    tasks = [asyncio.create_task(node.start(stop_event)) for node in nodes]
+    tasks = [asyncio.create_task(node.start(stop_event, startup_delay)) for node in nodes]
 
     # Wait with timeout
     try:
@@ -149,6 +152,8 @@ async def run_offline(
     format_name: str,
     timeout: float,
     report_dir: str | None,
+    latency: tuple[int, int] = (0, 0),
+    startup_delay: int = 0,
 ) -> None:
     """Run in offline mode with all nodes in one process (in-memory transport).
 
@@ -157,6 +162,9 @@ async def run_offline(
         algorithm_name: Name of algorithm to run
         format_name: Serialization format ("json" or "msgpack")
         timeout: Maximum runtime in seconds
+        report_dir: Optional directory for storing reports
+        latency: Tuple of (min_ms, max_ms) for network latency simulation
+        startup_delay: Delay in milliseconds before starting nodes
     """
     logger = logging.getLogger(__name__)
     config_data = load_config(config_path)
@@ -166,11 +174,19 @@ async def run_offline(
     stop_event = asyncio.Event()
 
     # First pass: create all nodes and register them
-    nodes: list[Node[LocalTransport, LocalAddress]] = []
+    nodes: list[Node[Any, Any]] = []
     for node_id_str, node_config in config_data.items():
         node_id = PeerId(node_id_str)
-        transport = LocalTransport()
-        transport.set_current_node(node_id_str)
+        base_transport = LocalTransport()
+        base_transport.set_current_node(node_id_str)
+
+        # Wrap with DelayedTransport if latency is configured
+        if latency[0] > 0 or latency[1] > 0:
+            from distbench.transport.delayed import DelayedTransport
+
+            transport = DelayedTransport(base_transport, latency)
+        else:
+            transport = base_transport
 
         neighbours = extract_neighbours(node_config, all_node_ids)
         neighbours.discard(node_id)  # Remove self from neighbors
@@ -179,7 +195,7 @@ async def run_offline(
             PeerId(pid): LocalAddress(pid) for pid in all_node_ids if pid != node_id_str
         }
 
-        community: Community[LocalTransport, LocalAddress] = Community(
+        community = Community(
             neighbours=neighbours,
             peer_addresses=peer_addresses,
             transport=transport,
@@ -212,11 +228,11 @@ async def run_offline(
             transport.register_server(node_id_str, server_node)
 
     logger.info(f"Starting {len(nodes)} nodes in offline mode")
-    await _run_nodes(nodes, timeout, stop_event)
+    await _run_nodes(nodes, timeout, stop_event, startup_delay)
 
 
 def build_tcp_mappings(
-    config_data: dict[str, Any], port_base: int | None
+    config_data: dict[str, Any], port_base: int, is_local: bool
 ) -> tuple[
     dict[TcpAddress, SocketAddress],
     dict[TcpAddress, PeerId],
@@ -226,8 +242,8 @@ def build_tcp_mappings(
 
     Args:
         config_data: The loaded configuration
-        port_base: If not None, use local mode (127.0.0.1:port_base + i).
-                   If None, use network mode (read host/port from config).
+        port_base: Base port number
+        is_local: If True, use 127.0.0.1:port_base+i. If False, use node_id:port_base.
 
     Returns:
         A tuple of (all_peer_sockets, all_peer_ids, peer_id_to_numeric_addr)
@@ -240,7 +256,6 @@ def build_tcp_mappings(
     sorted_node_ids = sorted(config_data.keys())
 
     for i, node_id_str in enumerate(sorted_node_ids):
-        node_config = config_data[node_id_str]
         # Use u16 (0-65535) for the numeric ID
         numeric_id = i
         if numeric_id > 65535:
@@ -249,18 +264,12 @@ def build_tcp_mappings(
         tcp_addr = TcpAddress(numeric_id)
         peer_id = PeerId(node_id_str)
 
-        if port_base is not None:
+        if is_local:
             # Local mode: assign 127.0.0.1:port_base + i
             socket_addr = SocketAddress("127.0.0.1", port_base + i)
         else:
-            # Network mode: read from config
-            host = node_config.get("host")
-            port = node_config.get("port")
-            if not host or not port:
-                raise ValueError(
-                    f"Network mode requires 'host' and 'port' for node '{node_id_str}'"
-                )
-            socket_addr = SocketAddress(str(host), int(port))
+            # Network mode: use node ID as hostname with port_base
+            socket_addr = SocketAddress(node_id_str, port_base)
 
         all_peer_sockets[tcp_addr] = socket_addr
         all_peer_ids[tcp_addr] = peer_id
@@ -276,6 +285,8 @@ async def run_local(
     timeout: float,
     port_base: int,
     report_dir: str | None,
+    latency: tuple[int, int] = (0, 0),
+    startup_delay: int = 0,
 ) -> None:
     """Run in local mode with all nodes on localhost (TCP transport).
 
@@ -285,6 +296,9 @@ async def run_local(
         format_name: Serialization format ("json" or "msgpack")
         timeout: Maximum runtime in seconds
         port_base: Base port for local nodes
+        report_dir: Optional directory for storing reports
+        latency: Tuple of (min_ms, max_ms) for network latency simulation
+        startup_delay: Delay in milliseconds before starting nodes
     """
     logger = logging.getLogger(__name__)
     config_data = load_config(config_path)
@@ -297,20 +311,28 @@ async def run_local(
         all_peer_sockets,
         all_peer_ids,
         peer_id_to_numeric_addr,
-    ) = build_tcp_mappings(config_data, port_base)
+    ) = build_tcp_mappings(config_data, port_base, True)
 
     logger.trace("Local mode node mappings:")
     for numeric_id, peer_id in all_peer_ids.items():
         sock_addr = all_peer_sockets[numeric_id]
         logger.trace(f"  - {peer_id} ({numeric_id}): {sock_addr}")
 
-    nodes: list[Node[TcpTransport, TcpAddress]] = []
+    nodes: list[Node[Any, Any]] = []
     for node_id_str, node_config in config_data.items():
         node_id = PeerId(node_id_str)
         local_numeric_id = peer_id_to_numeric_addr[node_id]
 
         # Each transport knows its own ID and the map to all physical sockets
-        transport = TcpTransport(local_numeric_id, all_peer_sockets)
+        base_transport = TcpTransport(local_numeric_id, all_peer_sockets)
+
+        # Wrap with DelayedTransport if latency is configured
+        if latency[0] > 0 or latency[1] > 0:
+            from distbench.transport.delayed import DelayedTransport
+
+            transport = DelayedTransport(base_transport, latency)
+        else:
+            transport = base_transport
 
         neighbours = extract_neighbours(node_config, all_node_ids)
         neighbours.discard(node_id)
@@ -320,7 +342,7 @@ async def run_local(
             pid: addr for pid, addr in peer_id_to_numeric_addr.items() if pid != node_id
         }
 
-        community: Community[TcpTransport, TcpAddress] = Community(
+        community = Community(
             neighbours=neighbours,
             peer_addresses=peer_addresses,  # type: ignore
             transport=transport,
@@ -346,7 +368,7 @@ async def run_local(
         nodes.append(node)
 
     logger.info(f"Starting {len(nodes)} nodes in local mode")
-    await _run_nodes(nodes, timeout, stop_event)
+    await _run_nodes(nodes, timeout, stop_event, startup_delay)
 
 
 async def run_network(
@@ -355,7 +377,10 @@ async def run_network(
     format_name: str,
     timeout: float,
     node_id_str: str,
+    port_base: int,
     report_dir: str | None,
+    latency: tuple[int, int] = (0, 0),
+    startup_delay: int = 0,
 ) -> None:
     """Run in network mode with this node connecting to others.
 
@@ -365,6 +390,9 @@ async def run_network(
         format_name: Serialization format ("json" or "msgpack")
         timeout: Maximum runtime in seconds
         node_id_str: ID of this node
+        report_dir: Optional directory for storing reports
+        latency: Tuple of (min_ms, max_ms) for network latency simulation
+        startup_delay: Delay in milliseconds before starting nodes
     """
     logger = logging.getLogger(__name__)
     config_data = load_config(config_path)
@@ -383,7 +411,7 @@ async def run_network(
         all_peer_sockets,
         all_peer_ids,
         peer_id_to_numeric_addr,
-    ) = build_tcp_mappings(config_data, None)  # None = network mode
+    ) = build_tcp_mappings(config_data, port_base, False)
 
     logger.trace("Network mode node mappings:")
     for numeric_id, peer_id in all_peer_ids.items():
@@ -393,7 +421,15 @@ async def run_network(
     local_numeric_id = peer_id_to_numeric_addr[node_id]
     bind_addr = all_peer_sockets[local_numeric_id]
 
-    transport = TcpTransport(local_numeric_id, all_peer_sockets)
+    base_transport = TcpTransport(local_numeric_id, all_peer_sockets)
+
+    # Wrap with DelayedTransport if latency is configured
+    if latency[0] > 0 or latency[1] > 0:
+        from distbench.transport.delayed import DelayedTransport
+
+        transport = DelayedTransport(base_transport, latency)
+    else:
+        transport = base_transport
 
     neighbours = extract_neighbours(node_config, all_node_ids)
     neighbours.discard(node_id)
@@ -403,7 +439,7 @@ async def run_network(
         pid: addr for pid, addr in peer_id_to_numeric_addr.items() if pid != node_id
     }
 
-    community: Community[TcpTransport, TcpAddress] = Community(
+    community = Community(
         neighbours=neighbours,
         peer_addresses=peer_addresses,  # type: ignore
         transport=transport,
@@ -428,7 +464,7 @@ async def run_network(
     )
 
     logger.info(f"Starting node {node_id_str} in network mode on {bind_addr}")
-    await _run_nodes([node], timeout, stop_event)
+    await _run_nodes([node], timeout, stop_event, startup_delay)
 
 
 @click.command()
@@ -486,16 +522,32 @@ async def run_network(
 @click.option(
     "--port-base",
     "-p",
-    default=10000,
+    default=8000,
     type=int,
     show_default=True,
-    help="Base port for --mode local",
+    help="Base port for local/network modes",
 )
 @click.option(
     "--report-dir",
     type=click.Path(file_okay=False, dir_okay=True, writable=True, resolve_path=True),
     default=None,
     help="Directory to append node reports (as .jsonl files)",
+)
+@click.option(
+    "--latency",
+    "-l",
+    default="0-0",
+    type=str,
+    show_default=True,
+    help="Network latency simulation in milliseconds (e.g. '10-50' for 10-50ms range, '20-20' for fixed 20ms)",
+)
+@click.option(
+    "--startup-delay",
+    "-s",
+    default=500,
+    type=int,
+    show_default=True,
+    help="Startup delay in milliseconds before nodes begin",
 )
 def main(
     config: str,
@@ -507,6 +559,8 @@ def main(
     node_id: str | None,
     port_base: int,
     report_dir: str | None,
+    latency: str,
+    startup_delay: int,
 ) -> None:
     """Distributed Algorithms Framework.
 
@@ -553,18 +607,63 @@ def main(
     if report_dir:
         os.makedirs(report_dir, exist_ok=True)
 
+    # Parse latency range
+    try:
+        if "-" in latency:
+            parts = latency.split("-")
+            if len(parts) != 2:
+                click.echo(
+                    f"Error: Invalid latency format '{latency}'. Expected 'min-max'", err=True
+                )
+                sys.exit(1)
+            latency_range = (int(parts[0]), int(parts[1]))
+        else:
+            # Single value, use as both min and max
+            val = int(latency)
+            latency_range = (val, val)
+    except ValueError as e:
+        click.echo(f"Error: Invalid latency format '{latency}': {e}", err=True)
+        sys.exit(1)
+
     # Run the appropriate mode
     try:
         if mode == "offline":
-            asyncio.run(run_offline(config, algorithm, format, timeout, report_dir))
+            asyncio.run(
+                run_offline(
+                    config, algorithm, format, timeout, report_dir, latency_range, startup_delay
+                )
+            )
         elif mode == "local":
-            asyncio.run(run_local(config, algorithm, format, timeout, port_base, report_dir))
+            asyncio.run(
+                run_local(
+                    config,
+                    algorithm,
+                    format,
+                    timeout,
+                    port_base,
+                    report_dir,
+                    latency_range,
+                    startup_delay,
+                )
+            )
         else:
             # mode == "network"
             if node_id is None:  # Should be caught by click, but check again
                 click.echo("Error: --id is required for --mode network", err=True)
                 sys.exit(1)
-            asyncio.run(run_network(config, algorithm, format, timeout, node_id, report_dir))
+            asyncio.run(
+                run_network(
+                    config,
+                    algorithm,
+                    format,
+                    timeout,
+                    node_id,
+                    port_base,
+                    report_dir,
+                    latency_range,
+                    startup_delay,
+                )
+            )
     except KeyboardInterrupt:
         logging.getLogger(__name__).info("Interrupted by user")
     except Exception as e:

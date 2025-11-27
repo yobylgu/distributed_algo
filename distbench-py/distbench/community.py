@@ -60,6 +60,50 @@ T = TypeVar("T", bound=Transport)
 A = TypeVar("A", bound=Address)
 
 
+class NodeSet:
+    """A utility wrapper providing HashSet-like functionality over peer keys.
+
+    This class wraps the internal keys dictionary to provide set operations
+    over peer IDs.
+    """
+
+    def __init__(self, keys: dict[PeerId, bytes]) -> None:
+        """Initialize a NodeSet with a keys dictionary.
+
+        Args:
+            keys: Dictionary mapping peer IDs to their public keys
+        """
+        self._keys = keys
+
+    def contains(self, peer_id: PeerId) -> bool:
+        """Check if a peer ID is in the set.
+
+        Args:
+            peer_id: The peer ID to check
+
+        Returns:
+            True if the peer ID is in the set
+        """
+        return peer_id in self._keys
+
+    def __len__(self) -> int:
+        """Return the number of peers in the set."""
+        return len(self._keys)
+
+    def __bool__(self) -> bool:
+        """Return True if the set is non-empty."""
+        return len(self._keys) > 0
+
+    def __iter__(self):
+        """Iterate over peer IDs in the set."""
+        return iter(self._keys.keys())
+
+    def __repr__(self) -> str:
+        """Return string representation of the set."""
+        peer_ids = list(self._keys.keys())
+        return f"NodeSet({peer_ids!r})"
+
+
 class Community(Generic[T, A]):
     """Manages peer relationships and communication in a distributed system.
 
@@ -202,6 +246,14 @@ class Community(Generic[T, A]):
             Public key bytes, or None if not found
         """
         return self._keys.get(peer_id)
+
+    def keys(self) -> NodeSet:
+        """Get a NodeSet view of all peers with stored keys.
+
+        Returns:
+            NodeSet providing set operations over peer IDs with keys
+        """
+        return NodeSet(self._keys)
 
     async def has_all_keys(self) -> bool:
         """Check if we have public keys for all known peers.

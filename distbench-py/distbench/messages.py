@@ -4,6 +4,7 @@ This module handles the outer envelope for all messages exchanged between nodes,
 including lifecycle coordination messages and algorithm-specific messages.
 """
 
+from dataclasses import dataclass
 from enum import Enum
 
 import msgpack
@@ -19,6 +20,17 @@ class MessageType(Enum):
     STARTED = 2  # Node has started and is ready
     FINISHED = 3  # Node has finished execution
     ALGORITHM = 4  # Algorithm-specific message
+
+
+@dataclass
+class AlgorithmMessage:
+    """Concrete packaged message, used to pass messages across layers.
+
+    Matches the Rust AlgorithmMessage struct.
+    """
+
+    type_id: str
+    bytes: bytes
 
 
 class NodeMessage:

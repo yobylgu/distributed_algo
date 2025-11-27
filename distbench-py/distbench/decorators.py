@@ -4,17 +4,20 @@ This module provides decorators that replace Rust's procedural macros:
 - @message: Mark a class as a message type
 - @distbench: Set up algorithm state with configuration fields and handlers
 - @handler: Mark a method as a message handler
+- @child_algorithm: Mark a field as a child algorithm
 """
 
+import functools
 import inspect
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import MISSING, dataclass, field
+from typing import Any, get_type_hints
 
 from distbench.algorithm import Algorithm, Peer
 from distbench.community import PeerId
 from distbench.encoding.format import Format
+from distbench.messages import AlgorithmMessage
 from distbench.signing import Keystore, recursive_verify
 
 
@@ -65,7 +68,9 @@ def message(cls: type[Any]) -> type[Any]:
     return cls
 
 
-def config_field(default: Any = None, required: bool = False) -> Any:
+def config_field(
+    default: Any = None, default_factory: Callable[[], Any] | None = None, required: bool = False
+) -> Any:
     """Mark a field as a configuration parameter.
 
     Configuration fields are loaded from the YAML config file at startup.
@@ -75,22 +80,50 @@ def config_field(default: Any = None, required: bool = False) -> Any:
         class MyAlgorithm(Algorithm):
             max_rounds: int = config_field(required=True)
             timeout: float = config_field(default=5.0)
+            items: list = config_field(default_factory=list)
 
     Args:
         default: Default value if not specified in config
+        default_factory: Factory function for default value (e.g., list, dict)
         required: Whether this field must be present in config
 
     Returns:
         A dataclass field with configuration metadata
     """
     metadata = {"config": True, "required": required}
-    if default is not None:
+    if default_factory is not None:
+        metadata["default_factory"] = default_factory
+        return field(default_factory=default_factory, metadata=metadata)
+    elif default is not None:
+        metadata["default"] = default
         return field(default=default, metadata=metadata)
     else:
         return field(metadata=metadata)
 
 
-def handler(func: Callable[..., Any]) -> Callable[..., Any]:
+def child_algorithm(cls: type[Algorithm]) -> Any:
+    """Mark a field as a child algorithm.
+
+    Child algorithms are automatically initialized and registered.
+
+    Usage:
+        @distbench
+        class MyAlgorithm(Algorithm):
+            broadcast: SimpleBroadcast = child_algorithm(SimpleBroadcast)
+
+    Args:
+        cls: The algorithm class of the child
+
+    Returns:
+        A dataclass field with child algorithm metadata
+    """
+    metadata = {"child": True, "class": cls}
+    return field(metadata=metadata)
+
+
+def handler(
+    func: Callable[..., Any] = None, *, from_child: str | None = None
+) -> Callable[..., Any]:
     """Decorator to mark a method as a message handler.
 
     Handler methods receive messages from peers and optionally return responses.
@@ -102,18 +135,107 @@ def handler(func: Callable[..., Any]) -> Callable[..., Any]:
             async def my_message(self, src: PeerId, msg: MyMessage) -> None:
                 print(f"Received {msg} from {src}")
 
-            @handler
-            async def request(self, src: PeerId, msg: Request) -> Response:
-                return Response(value=msg.value * 2)
+            @handler(from_child="broadcast")
+            async def on_broadcast(self, src: PeerId, msg: BroadcastMessage) -> None:
+                 # Handle message delivered from child algorithm
+                 pass
 
     Args:
-        func: Method to mark as a handler
+        func: Method to mark as a handler (when used without args)
+        from_child: Name of child algorithm this handler receives messages from
 
     Returns:
         The same method, marked with handler metadata
     """
-    func.__handler__ = True  # type: ignore
-    return func
+
+    def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
+        f.__handler__ = True  # type: ignore
+        f.__from_child__ = from_child  # type: ignore
+        return f
+
+    if func is None:
+        return wrapper
+    return wrapper(func)
+
+
+def interface(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Decorator to expose a method as a public interface.
+
+    Transforms a method taking bytes into one taking a typed message,
+    handling the serialization into an AlgorithmMessage envelope.
+
+    Matches the Rust #[distbench::interface] macro behavior.
+
+    Usage:
+        @distbench
+        class MyAlgorithm(Algorithm):
+            @interface
+            def my_public_method(self, data: bytes):
+                # logic...
+                pass
+
+    Calls to my_public_method(msg_obj) will:
+    1. Serialize msg_obj to bytes
+    2. Create AlgorithmMessage(type_id, bytes)
+    3. Serialize AlgorithmMessage to bytes
+    4. Call original my_public_method with the final bytes
+    """
+
+    # Note: We access self.format inside the wrapper, assuming the method belongs to an Algorithm
+
+    if inspect.iscoroutinefunction(func):
+
+        @functools.wraps(func)
+        async def async_wrapper(self: Any, msg: Any) -> Any:
+            if not hasattr(self, "format") or self.format is None:
+                raise RuntimeError("Algorithm format not initialized")
+
+            # 1. Serialize inner message
+            inner_bytes = self.format.serialize(msg)
+
+            # 2. Create envelope
+            type_id = type(msg).__name__
+            if hasattr(msg, "type_id"):
+                type_id = msg.type_id()
+            elif hasattr(type(msg), "type_id"):
+                type_id = type(msg).type_id()
+
+            alg_msg = AlgorithmMessage(type_id=type_id, bytes=inner_bytes)
+
+            # 3. Serialize envelope
+            outer_bytes = self.format.serialize(alg_msg)
+
+            # 4. Call original
+            return await func(self, outer_bytes)
+
+        return async_wrapper
+
+    else:
+
+        @functools.wraps(func)
+        def sync_wrapper(self: Any, msg: Any) -> Any:
+            if not hasattr(self, "format") or self.format is None:
+                raise RuntimeError("Algorithm format not initialized")
+
+            # 1. Serialize inner message
+            inner_bytes = self.format.serialize(msg)
+
+            # 2. Create envelope
+            type_id = type(msg).__name__
+            if hasattr(msg, "type_id"):
+                type_id = msg.type_id()
+            elif hasattr(type(msg), "type_id"):
+                type_id = type(msg).type_id()
+
+            alg_msg = AlgorithmMessage(type_id=type_id, bytes=inner_bytes)
+
+            # 3. Serialize envelope
+            outer_bytes = self.format.serialize(alg_msg)
+
+            # 4. Call original
+            return func(self, outer_bytes)
+
+        return sync_wrapper
 
 
 def distbench(cls: type[Algorithm]) -> type[Algorithm]:
@@ -126,20 +248,7 @@ def distbench(cls: type[Algorithm]) -> type[Algorithm]:
     - Collects all @handler decorated methods
     - Generates a handle() method that dispatches to the correct handler
     - Generates corresponding methods on the Peer class for sending messages
-
-    Usage:
-        @distbench
-        class MyAlgorithm(Algorithm):
-            max_rounds: int = config_field(required=True)
-            timeout: float = config_field(default=5.0)
-
-            @handler
-            async def my_message(self, src: PeerId, msg: MyMessage) -> None:
-                print(f"Received {msg} from {src}")
-
-            @handler
-            async def request(self, src: PeerId, msg: Request) -> Response:
-                return Response(value=msg.value * 2)
+    - Sets up child algorithms
 
     Args:
         cls: Algorithm class to decorate
@@ -147,12 +256,16 @@ def distbench(cls: type[Algorithm]) -> type[Algorithm]:
     Returns:
         Decorated algorithm class
     """
-    # Extract config fields
+    # Extract config fields and child algorithms
     config_fields = {}
+    child_fields = {}
 
     for name, field_obj in cls.__dict__.items():
-        if hasattr(field_obj, "metadata") and field_obj.metadata.get("config"):
-            config_fields[name] = field_obj
+        if hasattr(field_obj, "metadata"):
+            if field_obj.metadata.get("config"):
+                config_fields[name] = field_obj
+            elif field_obj.metadata.get("child"):
+                child_fields[name] = field_obj
 
     # Store original __init__ if it exists
     original_init = cls.__init__ if hasattr(cls, "__init__") else None
@@ -173,12 +286,25 @@ def distbench(cls: type[Algorithm]) -> type[Algorithm]:
                 setattr(self, name, config[name])
             elif not field_obj.metadata.get("required"):
                 # Use default value
-                if hasattr(field_obj, "default"):
+                if hasattr(field_obj, "default") and field_obj.default is not MISSING:
                     setattr(self, name, field_obj.default)
-                elif hasattr(field_obj, "default_factory"):
+                elif (
+                    hasattr(field_obj, "default_factory")
+                    and field_obj.default_factory is not MISSING
+                ):
                     setattr(self, name, field_obj.default_factory())
             else:
                 raise ValueError(f"Required config field '{name}' missing")
+
+        # Initialize child algorithms
+        for name, field_obj in child_fields.items():
+            child_cls = field_obj.metadata["class"]
+            child_config = config.get(name, {})
+
+            # Create child instance
+            child_instance = child_cls(child_config, peers)
+            self.register_child(name, child_instance)
+            setattr(self, name, child_instance)
 
         # Set peers
         self.peers = peers
@@ -196,28 +322,77 @@ def distbench(cls: type[Algorithm]) -> type[Algorithm]:
 
     # Collect all @handler decorated methods
     handler_methods: dict[str, dict[str, Any]] = {}
+    child_handlers: dict[
+        str, dict[str, Any]
+    ] = {}  # Map child_name -> {msg_type -> handler_method_name}
 
     for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
         # Check if method is marked with @handler
         if not hasattr(method, "__handler__"):
             continue
 
+        from_child = getattr(method, "__from_child__", None)
+
+        # Try to resolve type hints to get actual classes instead of strings
+        try:
+            hints = get_type_hints(method)
+        except Exception:
+            hints = {}
+
         # Get method signature
         sig = inspect.signature(method)
         params = list(sig.parameters.values())
 
+        # If from_child is set, it's a deliver handler
+        # Signature: (self, src, msg)
+        if from_child:
+            if len(params) >= 3:
+                msg_param = params[2]
+                # Use resolved hint if available
+                msg_type = hints.get(msg_param.name, msg_param.annotation)
+
+                if msg_type == inspect.Parameter.empty:
+                    continue
+
+                # Register for delivery
+                if from_child not in child_handlers:
+                    child_handlers[from_child] = {}
+
+                # Use class name for routing key
+                msg_type_name = (
+                    msg_type.__name__ if hasattr(msg_type, "__name__") else str(msg_type)
+                )
+
+                child_handlers[from_child][msg_type_name] = {
+                    "method": method,
+                    "msg_type": msg_type,
+                }
+            continue
+
         # Handler methods should have signature: (self, src: PeerId, msg: MessageType)
         if len(params) >= 3:
             msg_param = params[2]
-            msg_type = msg_param.annotation
+            # Use resolved hint if available
+            msg_type = hints.get(msg_param.name, msg_param.annotation)
 
             # Skip if no type annotation
             if msg_type == inspect.Parameter.empty:
                 continue
 
             # Store handler info
-            has_return = sig.return_annotation not in (None, inspect.Signature.empty, type(None))
+            has_return = sig.return_annotation not in (
+                None,
+                inspect.Signature.empty,
+                type(None),
+            )
             return_type = sig.return_annotation if has_return else None
+
+            # If return_type is a string, try to resolve it?
+            # Usually we don't use return_type for logic, just maybe serialization?
+            # In peer_method creation we use return_type.
+            if isinstance(return_type, str) and return_type in hints:
+                # This is unlikely for return annotation unless we check key 'return'
+                pass
 
             handler_methods[name] = {
                 "method": method,
@@ -233,6 +408,7 @@ def distbench(cls: type[Algorithm]) -> type[Algorithm]:
         msg_type_id: str,
         msg_bytes: bytes,
         format: Format,
+        path: list[str] | None = None,
     ) -> bytes | None:
         """Handle incoming algorithm message by dispatching to the correct handler.
 
@@ -241,30 +417,101 @@ def distbench(cls: type[Algorithm]) -> type[Algorithm]:
             msg_type_id: Message type identifier
             msg_bytes: Serialized message bytes
             format: Serialization format
+            path: Optional path for routing to child algorithms
 
         Returns:
             Serialized response bytes, or None
         """
-        if msg_type_id not in handler_methods:
-            raise ValueError(f"Unknown message type: {msg_type_id}")
+        # Check path for routing
+        if path and len(path) > 0:
+            child_name = path[0]
+            remaining_path = path[1:]
+            if child_name in self._children:
+                child = self._children[child_name]
+                return await child.handle(src, msg_type_id, msg_bytes, format, remaining_path)
+            else:
+                logging.warning(
+                    f"Child algorithm '{child_name}' not found in {self._name or 'root'}"
+                )
+                return None
 
-        handler_info = handler_methods[msg_type_id]
-        msg_obj = format.deserialize(msg_bytes, handler_info["msg_type"])
+        # Check if we handle it directly
+        if msg_type_id in handler_methods:
+            handler_info = handler_methods[msg_type_id]
+            # Here msg_type must be a class
+            if isinstance(handler_info["msg_type"], str):
+                logging.error(
+                    f"Handler for {msg_type_id} has unresolved type string: {handler_info['msg_type']}"
+                )
+                return None
 
-        # Verify all signatures in the message
-        if not recursive_verify(msg_obj, self.community):
-            logging.warning(
-                f"Verification failed for {msg_type_id} from {src}, dropping message"
-            )
+            msg_obj = format.deserialize(msg_bytes, handler_info["msg_type"])
+
+            # Verify all signatures in the message
+            if not recursive_verify(msg_obj, self.community):
+                logging.warning(
+                    f"Verification failed for {msg_type_id} from {src}, dropping message"
+                )
+                return None
+
+            result = await handler_info["method"](self, src, msg_obj)
+
+            if result is not None:
+                return format.serialize(result)
             return None
 
-        result = await handler_info["method"](self, src, msg_obj)
+        # If not handled locally and no path, check if any child handles this message type
+        # This is implicit routing (if supported)
+        for child in self._children.values():
+            # We can check if child class has handler for this.
+            # Accessing `__handlers__` on child class.
+            child_cls = child.__class__
+            if hasattr(child_cls, "__handlers__") and msg_type_id in child_cls.__handlers__:
+                return await child.handle(src, msg_type_id, msg_bytes, format, path)
 
-        if result is not None:
-            return format.serialize(result)
+        logging.warning(f"Unhandled message type: {msg_type_id} in {self.__class__.__name__}")
         return None
 
     cls.handle = handle  # type: ignore
+
+    # Generate deliver method
+    async def deliver(
+        self: Any,
+        src: PeerId,
+        msg_bytes: bytes,
+        format: Format,
+    ) -> bytes | None:
+        """Deliver a message from a child algorithm to this parent."""
+        try:
+            envelope = format.deserialize(msg_bytes, tuple)
+            if not isinstance(envelope, list | tuple) or len(envelope) != 2:
+                logging.error("Invalid envelope format for deliver()")
+                return None
+            msg_type_id, payload = envelope
+        except Exception as e:
+            logging.error(f"Failed to deserialize envelope: {e}")
+            return None
+
+        for handlers in child_handlers.values():
+            if msg_type_id in handlers:
+                handler_info = handlers[msg_type_id]
+
+                if isinstance(handler_info["msg_type"], str):
+                    logging.error(f"Deliver handler for {msg_type_id} has unresolved type string")
+                    return None
+
+                msg_obj = format.deserialize(payload, handler_info["msg_type"])
+
+                # Verify
+                if not recursive_verify(msg_obj, self.community):
+                    return None
+
+                return await handler_info["method"](self, src, msg_obj)
+
+        logging.warning(f"No handler for delivered message: {msg_type_id}")
+        return None
+
+    cls.deliver = deliver  # type: ignore
 
     # Generate Peer methods dynamically
     def create_peer_method(

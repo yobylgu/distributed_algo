@@ -27,6 +27,18 @@ def load_config(path: str) -> dict[str, dict[str, Any]]:
       ...
     ```
 
+    Supports YAML anchors and merge keys for reusable configuration templates:
+    ```yaml
+    _template: &shared_config
+      field: value
+
+    node1:
+      <<: *shared_config
+      neighbours: [node2]
+    ```
+
+    Keys starting with underscore (_) are treated as templates and filtered out.
+
     Args:
         path: Path to the YAML configuration file
 
@@ -38,10 +50,14 @@ def load_config(path: str) -> dict[str, dict[str, Any]]:
         yaml.YAMLError: If the config file is malformed
     """
     with open(path) as f:
+        # PyYAML safe_load automatically handles merge keys (<<) and anchors (&/*)
         config = yaml.safe_load(f)
 
     if not isinstance(config, dict):
         raise ValueError("Config file must contain a dictionary")
+
+    # Filter out template entries (keys starting with _)
+    config = {k: v for k, v in config.items() if not k.startswith("_")}
 
     logger.trace(f"Loaded configuration for {len(config)} nodes")
     return config

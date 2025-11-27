@@ -9,7 +9,7 @@ distributed algorithms with support for:
 """
 
 from distbench.algorithm import Algorithm, Peer
-from distbench.community import Community, NodeStatus, PeerId
+from distbench.community import Community, NodeSet, NodeStatus, PeerId
 from distbench.connection import ConnectionManager
 from distbench.decorators import algorithm_state, config_field, handlers, message
 from distbench.encoding import Format, JsonFormat, MsgpackFormat
@@ -34,6 +34,7 @@ __all__ = [
     "Community",
     "PeerId",
     "NodeStatus",
+    "NodeSet",
     # Connection management
     "ConnectionManager",
     # Transport layer

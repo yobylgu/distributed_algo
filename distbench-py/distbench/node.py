@@ -77,6 +77,7 @@ class Node(Server, Generic[T, A]):
         self.algorithm._set_node_id(node_id)
         self.algorithm._set_total_nodes(len(community.peers) + 1)  # +1 for self
         self.algorithm._set_keypair(self.keypair)
+        self.algorithm._set_format(format)
         self.algorithm.community = community
 
         logger.trace(f"Node {node_id} initialized")
@@ -258,17 +259,19 @@ class Node(Server, Generic[T, A]):
 
         return None
 
-    async def start(self, stop_event: asyncio.Event) -> None:
+    async def start(self, stop_event: asyncio.Event, startup_delay: int = 0) -> None:
         """Start the node and run until completion.
 
         This method:
         1. Starts the monitor task for lifecycle management
         2. Starts the transport server for incoming connections
-        3. Initiates the key sharing phase
-        4. Waits for algorithm completion or external stop signal
+        3. Applies startup delay if configured
+        4. Initiates the key sharing phase
+        5. Waits for algorithm completion or external stop signal
 
         Args:
             stop_event: Event that signals external shutdown request
+            startup_delay: Delay in milliseconds before starting (default: 0)
         """
         # Set the node ID in context for logging
         current_node_id.set(str(self.id))
@@ -284,6 +287,11 @@ class Node(Server, Generic[T, A]):
 
         # Give servers time to start
         await asyncio.sleep(0.5)
+
+        # Apply startup delay if configured
+        if startup_delay > 0:
+            logger.trace(f"Node {self.id} delaying startup by {startup_delay}ms")
+            await asyncio.sleep(startup_delay / 1000.0)
 
         # Transition to key sharing phase
         await self._set_status(NodeStatus.KEY_SHARING)

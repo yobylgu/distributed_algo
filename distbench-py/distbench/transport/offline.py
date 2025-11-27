@@ -7,10 +7,9 @@ directly by calling each other's handlers within the same process.
 import asyncio
 import logging
 from dataclasses import dataclass
-from typing import Dict
 
-from distbench.transport.base import Connection, Server, Transport
 from distbench.context import current_node_id
+from distbench.transport.base import Connection, Server, Transport
 
 logger = logging.getLogger(__name__)
 
@@ -70,8 +69,11 @@ class LocalConnection(Connection):
 
         # For cast, just call the handler and don't wait
         async def spawn_handle() -> None:
-            current_node_id.set(str(self.source_address.node_id))
-            await self.server.handle(self.source_address, msg)
+            token = current_node_id.set(str(self.target_address.node_id))
+            try:
+                await self.server.handle(self.source_address, msg)
+            finally:
+                current_node_id.reset(token)
 
         asyncio.create_task(spawn_handle())
 
@@ -91,7 +93,7 @@ class LocalTransport(Transport):
     def __init__(self) -> None:
         """Initialize the local transport."""
         # Registry of servers by node ID
-        self.servers: Dict[str, Server] = {}
+        self.servers: dict[str, Server] = {}
         self.lock = asyncio.Lock()
         # Track which node is currently using this transport for connect()
         self.current_node_id: str | None = None
