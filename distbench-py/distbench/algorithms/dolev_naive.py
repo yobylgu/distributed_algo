@@ -22,7 +22,7 @@ class DMsg:
 
 
 @distbench
-class Dolev(Algorithm):
+class DolevNaive(Algorithm):
     is_sender: bool = config_field(default=False)
     payload: str = config_field(default="hello")
     max_delay: float = config_field(default=0.5)
@@ -32,10 +32,10 @@ class Dolev(Algorithm):
         self.peers = peers
         self.neighbour_ids: Set[str] = set()
         self.f = GLOBAL_F
+
         self.paths: Dict[str, List[List[str]]] = {}
         self.delivered: Set[str] = set()
-        self.forwarded_empty: Set[str] = set()
-        self.neighbour_delivered: Dict[str, Set[str]] = {}
+
         self.message_metrics: Dict[str, Dict] = {}
         self.total_messages_sent = 0
         self.messages_forwarded = 0
@@ -47,7 +47,7 @@ class Dolev(Algorithm):
         if self.is_sender:
             await self.broadcast_message()
 
-        await asyncio.sleep(4.0)
+        await asyncio.sleep(15.0)
 
         logger.info(f"[{self.id()}] Terminating. Delivered {len(self.delivered)} messages.")
         await self.terminate()
@@ -81,6 +81,7 @@ class Dolev(Algorithm):
     async def broadcast_message(self):
         msg_id = str(uuid.uuid4())
         self_id = str(self.id())
+
         self.message_metrics[msg_id] = {
             "broadcast_time": time.time(),
             "delivery_time": None,
@@ -89,17 +90,10 @@ class Dolev(Algorithm):
         msg = DMsg(msg_id, self_id, self.payload, [])
         logger.info(f"[{self.id()}] BROADCAST ----> {msg_id}")
 
-        # async func here messes up (race condition?), origin can deliver to itself offline (maybe)
-        if msg_id not in self.delivered:
-            self.delivered.add(msg_id)
-            self.message_metrics[msg_id]["delivery_time"] = time.time()
-            logger.info(f"[{self.id()}] DELIVER (sender local) {msg_id}")
-
         for peer in self.peers.values():
             if str(peer.peer_id) in self.neighbour_ids:
                 await peer.dolev(msg)
                 self.total_messages_sent += 1
-
 
 
     @handler
@@ -110,88 +104,39 @@ class Dolev(Algorithm):
 
         msg_id = msg.msg_id
 
-        #MD5 stop all activity for msg, we done
-        if msg.msg_id in self.delivered and msg.msg_id in self.forwarded_empty:
-            logger.info("[{self.id()}] MD5: already delivered and forwarded empty, ignore {msg_id}")
-            return
-
         if msg_id not in self.message_metrics:
             self.message_metrics[msg_id] = {
                 "broadcast_time": time.time(),
                 "delivery_time": None,
             }
 
-        # MD1 call
-        if src_id == msg.source and msg_id not in self.delivered:
-            await self.deliver(msg, True)
-
-        #ND3 skip empty from non-source, but only if you alr delivered
-        if not msg.path and src_id != msg.source:
-            self.neighbour_delivered.setdefault(msg_id, set()).add(src_id)
-            logger.info(f"[{self.id()}] MD3: record {src_id} delivered {msg_id}")
-            return
-
         new_path = msg.path + [src_id]
-        logger.info(f"[{self.id()}] recv msg from {src_id} path={msg.path}")
-        # MD4
-        if src_id in self.neighbour_delivered.get(msg_id, set()) and src_id in msg.path:
-            logger.info(f"[{self.id()}] MD4: drop second hop from delivered neighbor {src_id} for {msg_id}")
-            return
+        logger.info(f"[{self.id()}] recv {msg_id} from {src_id} path={msg.path}")
 
         self.paths.setdefault(msg_id, [])
         if new_path not in self.paths[msg_id]:
             self.paths[msg_id].append(new_path)
 
-        delivered_neighbours = self.neighbour_delivered.get(msg_id, set())
-
         for peer in self.peers.values():
             pid = str(peer.peer_id)
-            if pid in self.neighbour_ids and pid not in new_path and pid not in delivered_neighbours:
+            if pid in self.neighbour_ids and pid not in new_path:
                 await self.delay()
                 await peer.dolev(DMsg(msg_id, msg.source, msg.payload, new_path))
                 self.messages_forwarded += 1
                 self.total_messages_sent += 1
 
-        await self.deliver(msg)
+        await self.try_deliver(msg)
 
-    async def deliver(self, msg: DMsg, direct: bool = False):
+    async def try_deliver(self, msg: DMsg):
         msg_id = msg.msg_id
-
-        # ignore alr delivered + MD2 ignore forwarded empty so no repeats
-        if msg_id in self.delivered and msg_id in self.forwarded_empty:
+        if msg_id in self.delivered:
             return
 
-        # MD1 deliver directly
-        if direct and msg_id not in self.delivered:
+        paths = self.paths.get(msg_id, [])
+        if self.distPaths(paths, msg.source):
             self.delivered.add(msg_id)
-            self.message_metrics.setdefault(msg_id, {})["delivery_time"] = time.time()
-            logger.info(f"[{self.id()}] DELIVER (MD1 direct) {msg_id}")
-
-        # deliver needs if to guard empty forward for one exec
-        elif msg_id not in self.delivered:
-            paths = self.paths.get(msg_id, [])
-            if self.distPaths(paths, msg.source):
-                self.delivered.add(msg_id)
-                self.neighbour_delivered.setdefault(msg_id, set()).add(str(self.id()))
-                self.message_metrics[msg_id]["delivery_time"] = time.time()
-                logger.info(f"[{self.id()}] DELIVER {msg_id}")
-        else:
-            return
-
-        # MD2 empty forward
-        if msg_id not in self.forwarded_empty:
-            self.neighbour_delivered.setdefault(msg_id, set()).add(str(self.id()))
-            empty = DMsg(msg_id, msg.source, msg.payload, [])
-
-            for peer in self.peers.values():
-                if str(peer.peer_id) in self.neighbour_ids:
-                    await self.delay()
-                    await peer.dolev(empty)
-                    self.messages_forwarded += 1
-                    self.total_messages_sent += 1
-
-            self.forwarded_empty.add(msg_id)
-            self.paths[msg_id] = []
+            self.message_metrics[msg_id]["delivery_time"] = time.time()
+            logger.info(f"[{self.id()}] DELIVER {msg_id}")
 
     def distPaths(self, paths: List[List[str]], source: str) -> bool:
         needed = self.f + 1
