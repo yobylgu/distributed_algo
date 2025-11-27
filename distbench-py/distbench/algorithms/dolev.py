@@ -1,4 +1,3 @@
-GLOBAL_F = 1
 import logging
 import uuid
 from typing import Dict, Any, List, Set
@@ -25,12 +24,14 @@ class Dolev(Algorithm):
     payload: str = config_field(default="hello")
     max_delay: float = config_field(default=0.5)
     behavior_mode: str = config_field(default="HONEST")
+    num_messages: int = config_field(default=1)
+    f: int = config_field(default=1)
 
     def __init__(self, config: Dict[str, Any], peers: Dict[PeerId, Any]):
         super().__init__()
         self.peers = peers
         self.neighbour_ids: Set[str] = set()
-        self.f = GLOBAL_F
+        # self.f is set by config_field, no need to reassign
         self.paths: Dict[str, List[List[str]]] = {}
         self.delivered: Set[str] = set()
         self.forwarded_empty: Set[str] = set()
@@ -70,7 +71,10 @@ class Dolev(Algorithm):
                         await peer.dolev(fake_msg)
 
         if self.is_sender:
-            await self.broadcast_message()
+            for i in range(self.num_messages):
+                await self.broadcast_message()
+                if i < self.num_messages - 1:
+                    await asyncio.sleep(0.1)  # Small delay between sequential broadcasts
 
         await asyncio.sleep(5.0)
 
