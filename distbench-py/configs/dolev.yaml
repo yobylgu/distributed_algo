@@ -1,109 +1,79 @@
 n0:
-  algorithm: dolev
+  host: "127.0.0.1"
+  port: 10000
   neighbours: ["n1","n9","n5"]
-  f: 0
   is_sender: true
   payload: "hello"
-  delay_min: 0.0
-  delay_max: 0.0
   behavior_mode: "HONEST"
-  num_messages: 1
 
 n1:
-  algorithm: dolev
+  host: "127.0.0.1"
+  port: 10001
   neighbours: ["n0","n2","n6"]
-  f: 0
   is_sender: false
   payload: "hello"
-  delay_min: 0.0
-  delay_max: 0.0
   behavior_mode: "HONEST"
-  num_messages: 1
 
 n2:
-  algorithm: dolev
+  host: "127.0.0.1"
+  port: 10002
   neighbours: ["n1","n3","n7"]
-  f: 0
   is_sender: false
   payload: "hello"
-  delay_min: 0.0
-  delay_max: 0.0
   behavior_mode: "HONEST"
-  num_messages: 1
 
 n3:
-  algorithm: dolev
+  host: "127.0.0.1"
+  port: 10003
   neighbours: ["n2","n4","n8"]
-  f: 0
   is_sender: false
   payload: "hello"
-  delay_min: 0.0
-  delay_max: 0.0
   behavior_mode: "HONEST"
-  num_messages: 1
 
 n4:
-  algorithm: dolev
+  host: "127.0.0.1"
+  port: 10004
   neighbours: ["n3","n5","n9"]
-  f: 0
   is_sender: false
   payload: "hello"
-  delay_min: 0.0
-  delay_max: 0.0
   behavior_mode: "HONEST"
-  num_messages: 1
 
 n5:
-  algorithm: dolev
+  host: "127.0.0.1"
+  port: 10005
   neighbours: ["n4","n6","n0"]
-  f: 0
   is_sender: false
   payload: "hello"
-  delay_min: 0.0
-  delay_max: 0.0
   behavior_mode: "HONEST"
-  num_messages: 1
 
 n6:
-  algorithm: dolev
+  host: "127.0.0.1"
+  port: 10006
   neighbours: ["n5","n7","n1"]
-  f: 0
   is_sender: false
   payload: "hello"
-  delay_min: 0.0
-  delay_max: 0.0
   behavior_mode: "HONEST"
-  num_messages: 1
 
 n7:
-  algorithm: dolev
+  host: "127.0.0.1"
+  port: 10007
   neighbours: ["n6","n8","n2"]
-  f: 0
   is_sender: false
   payload: "hello"
-  delay_min: 0.0
-  delay_max: 0.0
   behavior_mode: "HONEST"
-  num_messages: 1
 
 n8:
-  algorithm: dolev
+  host: "127.0.0.1"
+  port: 10008
   neighbours: ["n7","n9","n3"]
-  f: 0
   is_sender: false
   payload: "hello"
-  delay_min: 0.0
-  delay_max: 0.0
   behavior_mode: "HONEST"
-  num_messages: 1
 
 n9:
-  algorithm: dolev
+  host: "127.0.0.1"
+  port: 10009
   neighbours: ["n8","n0","n4"]
-  f: 0
   is_sender: false
   payload: "hello"
-  delay_min: 0.0
-  delay_max: 0.0
   behavior_mode: "HONEST"
-  num_messages: 1
