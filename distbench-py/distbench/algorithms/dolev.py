@@ -121,10 +121,23 @@ class Dolev(Algorithm):
             self.message_metrics[msg_id]["delivery_time"] = time.time()
             self.logger.info(f"[{self.id()}] DELIVER (sender local) {msg_id}")
 
-        for peer in self.peers.values():
-            if str(peer.peer_id) in self.neighbour_ids:
-                await peer.dolev(msg)
-                self.total_messages_sent += 1
+        # BYZANTINE_SELECTIVE: Only send to subset of neighbors (breaks totality)
+        if self.behavior_mode == "BYZANTINE_SELECTIVE":
+            # Only send to first half of neighbors (rounded down)
+            target_neighbors = sorted(list(self.neighbour_ids))[:len(self.neighbour_ids) // 2]
+            excluded = sorted(list(self.neighbour_ids))[len(self.neighbour_ids) // 2:]
+            self.logger.info(f"[{self.id()}] BYZANTINE SELECTIVE: Sending to {target_neighbors}, excluding {excluded}")
+
+            for peer in self.peers.values():
+                if str(peer.peer_id) in target_neighbors:
+                    await peer.dolev(msg)
+                    self.total_messages_sent += 1
+        else:
+            # Normal broadcast to all neighbors
+            for peer in self.peers.values():
+                if str(peer.peer_id) in self.neighbour_ids:
+                    await peer.dolev(msg)
+                    self.total_messages_sent += 1
 
     @handler
     async def dolev(self, src: PeerId, msg: DMsg):

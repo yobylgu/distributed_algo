@@ -1,5 +1,5 @@
 # Byzantine broadcaster with no totality test
-# Node n0 is the sender but is BYZANTINE_SILENT (only sends to some nodes)
+# Node n0 is the sender but is BYZANTINE_SELECTIVE (only sends to subset of neighbors)
 # Demonstrates: Byzantine broadcasters break totality - some nodes may deliver while others don't
 
 n0:
@@ -8,7 +8,7 @@ n0:
   neighbours: ["n1","n9","n5"]
   is_sender: true
   payload: "byzantine_broadcast"
-  behavior_mode: "BYZANTINE_SILENT"
+  behavior_mode: "BYZANTINE_SELECTIVE"
   f: 1
 
 n1:
