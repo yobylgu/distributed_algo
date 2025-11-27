@@ -1,0 +1,143 @@
+n0:
+  host: 127.0.0.1
+  port: 10000
+  neighbours:
+  - n1
+  - n12
+  - n2
+  is_sender: true
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n1:
+  host: 127.0.0.1
+  port: 10001
+  neighbours:
+  - n0
+  - n3
+  - n2
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n2:
+  host: 127.0.0.1
+  port: 10002
+  neighbours:
+  - n1
+  - n3
+  - n4
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n3:
+  host: 127.0.0.1
+  port: 10003
+  neighbours:
+  - n2
+  - n5
+  - n4
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n4:
+  host: 127.0.0.1
+  port: 10004
+  neighbours:
+  - n3
+  - n6
+  - n5
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n5:
+  host: 127.0.0.1
+  port: 10005
+  neighbours:
+  - n7
+  - n6
+  - n4
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n6:
+  host: 127.0.0.1
+  port: 10006
+  neighbours:
+  - n7
+  - n8
+  - n5
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n7:
+  host: 127.0.0.1
+  port: 10007
+  neighbours:
+  - n9
+  - n8
+  - n6
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n8:
+  host: 127.0.0.1
+  port: 10008
+  neighbours:
+  - n9
+  - n10
+  - n7
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n9:
+  host: 127.0.0.1
+  port: 10009
+  neighbours:
+  - n11
+  - n10
+  - n8
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n10:
+  host: 127.0.0.1
+  port: 10010
+  neighbours:
+  - n12
+  - n11
+  - n9
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n11:
+  host: 127.0.0.1
+  port: 10011
+  neighbours:
+  - n0
+  - n12
+  - n10
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n12:
+  host: 127.0.0.1
+  port: 10012
+  neighbours:
+  - n0
+  - n1
+  - n11
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1

@@ -1,0 +1,77 @@
+n0:
+  host: 127.0.0.1
+  port: 10000
+  neighbours:
+  - n1
+  - n2
+  - n6
+  is_sender: true
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n1:
+  host: 127.0.0.1
+  port: 10001
+  neighbours:
+  - n0
+  - n3
+  - n2
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n2:
+  host: 127.0.0.1
+  port: 10002
+  neighbours:
+  - n1
+  - n3
+  - n4
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n3:
+  host: 127.0.0.1
+  port: 10003
+  neighbours:
+  - n2
+  - n5
+  - n4
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n4:
+  host: 127.0.0.1
+  port: 10004
+  neighbours:
+  - n3
+  - n6
+  - n5
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n5:
+  host: 127.0.0.1
+  port: 10005
+  neighbours:
+  - n0
+  - n6
+  - n4
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
+n6:
+  host: 127.0.0.1
+  port: 10006
+  neighbours:
+  - n0
+  - n1
+  - n5
+  is_sender: false
+  payload: hello
+  behavior_mode: HONEST
+  f: 1
