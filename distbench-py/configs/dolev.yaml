@@ -1,41 +1,109 @@
 n0:
   algorithm: dolev
-  neighbours: ["n1","n9", "n5"]
+  neighbours: ["n1","n9","n5"]
+  f: 0
   is_sender: true
+  payload: "hello"
+  delay_min: 0.0
+  delay_max: 0.0
+  behavior_mode: "HONEST"
+  num_messages: 1
 
 n1:
   algorithm: dolev
-  neighbours: ["n0","n2", "n6"]
+  neighbours: ["n0","n2","n6"]
+  f: 0
+  is_sender: false
+  payload: "hello"
+  delay_min: 0.0
+  delay_max: 0.0
+  behavior_mode: "HONEST"
+  num_messages: 1
 
 n2:
   algorithm: dolev
-
-  neighbours: ["n1","n3", "n7"]
+  neighbours: ["n1","n3","n7"]
+  f: 0
+  is_sender: false
+  payload: "hello"
+  delay_min: 0.0
+  delay_max: 0.0
+  behavior_mode: "HONEST"
+  num_messages: 1
 
 n3:
   algorithm: dolev
-  neighbours: ["n2","n4", "n8"]
+  neighbours: ["n2","n4","n8"]
+  f: 0
+  is_sender: false
+  payload: "hello"
+  delay_min: 0.0
+  delay_max: 0.0
+  behavior_mode: "HONEST"
+  num_messages: 1
 
 n4:
   algorithm: dolev
-  neighbours: ["n3","n5", "n9"]
+  neighbours: ["n3","n5","n9"]
+  f: 0
+  is_sender: false
+  payload: "hello"
+  delay_min: 0.0
+  delay_max: 0.0
+  behavior_mode: "HONEST"
+  num_messages: 1
 
 n5:
   algorithm: dolev
-  neighbours: ["n4","n6", "n0"]
+  neighbours: ["n4","n6","n0"]
+  f: 0
+  is_sender: false
+  payload: "hello"
+  delay_min: 0.0
+  delay_max: 0.0
+  behavior_mode: "HONEST"
+  num_messages: 1
 
 n6:
   algorithm: dolev
-  neighbours: ["n5","n7", "n1"]
+  neighbours: ["n5","n7","n1"]
+  f: 0
+  is_sender: false
+  payload: "hello"
+  delay_min: 0.0
+  delay_max: 0.0
+  behavior_mode: "HONEST"
+  num_messages: 1
 
 n7:
   algorithm: dolev
-  neighbours: ["n6","n8", "n2"]
+  neighbours: ["n6","n8","n2"]
+  f: 0
+  is_sender: false
+  payload: "hello"
+  delay_min: 0.0
+  delay_max: 0.0
+  behavior_mode: "HONEST"
+  num_messages: 1
 
 n8:
   algorithm: dolev
-  neighbours: ["n7","n9", "n3"]
+  neighbours: ["n7","n9","n3"]
+  f: 0
+  is_sender: false
+  payload: "hello"
+  delay_min: 0.0
+  delay_max: 0.0
+  behavior_mode: "HONEST"
+  num_messages: 1
 
 n9:
   algorithm: dolev
-  neighbours: ["n8","n0", "n4"]
+  neighbours: ["n8","n0","n4"]
+  f: 0
+  is_sender: false
+  payload: "hello"
+  delay_min: 0.0
+  delay_max: 0.0
+  behavior_mode: "HONEST"
+  num_messages: 1

@@ -125,9 +125,9 @@ class DolevNaive(Algorithm):
                 self.messages_forwarded += 1
                 self.total_messages_sent += 1
 
-        await self.try_deliver(msg)
+        await self.my_deliver(msg)
 
-    async def try_deliver(self, msg: DMsg):
+    async def my_deliver(self, msg: DMsg):
         msg_id = msg.msg_id
         if msg_id in self.delivered:
             return
