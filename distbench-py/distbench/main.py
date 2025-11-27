@@ -185,9 +185,10 @@ async def run_offline(
             transport=transport,
         )
 
+        # Only create peers for neighbors, not all connections
         peers = {
             pid: Peer(pid, community.connection(pid), format_impl, community)  # type: ignore
-            for pid, conn in community.connections.items()
+            for pid in neighbours
         }
 
         algo_config = extract_algorithm_config(node_config)
@@ -326,9 +327,10 @@ async def run_local(
             transport=transport,
         )
 
+        # Only create peers for neighbors, not all connections
         peers = {
             pid: Peer(pid, community.connection(pid), format_impl, community)  # type: ignore
-            for pid, conn in community.connections.items()
+            for pid in neighbours
         }
 
         algo_config = extract_algorithm_config(node_config)
@@ -409,9 +411,10 @@ async def run_network(
         transport=transport,
     )
 
+    # Only create peers for neighbors, not all connections
     peers = {
         pid: Peer(pid, community.connection(pid), format_impl, community)  # type: ignore
-        for pid, conn in community.connections.items()
+        for pid in neighbours
     }
 
     algo_config = extract_algorithm_config(node_config)
