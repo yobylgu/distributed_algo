@@ -1,0 +1,174 @@
+version: '3.8'
+
+# Docker Compose configuration for Dolev's algorithm
+# Runs 10 nodes in a (2f+1)-connected network with f=1
+
+services:
+  p0:
+    build: .
+    container_name: dolev-p0
+    hostname: p0
+    environment:
+      NODE_ID: "p0"
+      CONFIG_FILE: "/config/dolev-network.yaml"
+      ALGORITHM: "dolev"
+    volumes:
+      - ../configs:/config:ro
+      - ./output:/output
+    networks:
+      dolev_network:
+        ipv4_address: 172.25.0.10
+    restart: unless-stopped
+
+  p1:
+    build: .
+    container_name: dolev-p1
+    hostname: p1
+    environment:
+      NODE_ID: "p1"
+      CONFIG_FILE: "/config/dolev-network.yaml"
+      ALGORITHM: "dolev"
+    volumes:
+      - ../configs:/config:ro
+      - ./output:/output
+    networks:
+      dolev_network:
+        ipv4_address: 172.25.0.11
+    restart: unless-stopped
+
+  p2:
+    build: .
+    container_name: dolev-p2
+    hostname: p2
+    environment:
+      NODE_ID: "p2"
+      CONFIG_FILE: "/config/dolev-network.yaml"
+      ALGORITHM: "dolev"
+    volumes:
+      - ../configs:/config:ro
+      - ./output:/output
+    networks:
+      dolev_network:
+        ipv4_address: 172.25.0.12
+    restart: unless-stopped
+
+  p3:
+    build: .
+    container_name: dolev-p3
+    hostname: p3
+    environment:
+      NODE_ID: "p3"
+      CONFIG_FILE: "/config/dolev-network.yaml"
+      ALGORITHM: "dolev"
+    volumes:
+      - ../configs:/config:ro
+      - ./output:/output
+    networks:
+      dolev_network:
+        ipv4_address: 172.25.0.13
+    restart: unless-stopped
+
+  p4:
+    build: .
+    container_name: dolev-p4
+    hostname: p4
+    environment:
+      NODE_ID: "p4"
+      CONFIG_FILE: "/config/dolev-network.yaml"
+      ALGORITHM: "dolev"
+    volumes:
+      - ../configs:/config:ro
+      - ./output:/output
+    networks:
+      dolev_network:
+        ipv4_address: 172.25.0.14
+    restart: unless-stopped
+
+  p5:
+    build: .
+    container_name: dolev-p5
+    hostname: p5
+    environment:
+      NODE_ID: "p5"
+      CONFIG_FILE: "/config/dolev-network.yaml"
+      ALGORITHM: "dolev"
+    volumes:
+      - ../configs:/config:ro
+      - ./output:/output
+    networks:
+      dolev_network:
+        ipv4_address: 172.25.0.15
+    restart: unless-stopped
+
+  p6:
+    build: .
+    container_name: dolev-p6
+    hostname: p6
+    environment:
+      NODE_ID: "p6"
+      CONFIG_FILE: "/config/dolev-network.yaml"
+      ALGORITHM: "dolev"
+    volumes:
+      - ../configs:/config:ro
+      - ./output:/output
+    networks:
+      dolev_network:
+        ipv4_address: 172.25.0.16
+    restart: unless-stopped
+
+  p7:
+    build: .
+    container_name: dolev-p7
+    hostname: p7
+    environment:
+      NODE_ID: "p7"
+      CONFIG_FILE: "/config/dolev-network.yaml"
+      ALGORITHM: "dolev"
+    volumes:
+      - ../configs:/config:ro
+      - ./output:/output
+    networks:
+      dolev_network:
+        ipv4_address: 172.25.0.17
+    restart: unless-stopped
+
+  p8:
+    build: .
+    container_name: dolev-p8
+    hostname: p8
+    environment:
+      NODE_ID: "p8"
+      CONFIG_FILE: "/config/dolev-network.yaml"
+      ALGORITHM: "dolev"
+    volumes:
+      - ../configs:/config:ro
+      - ./output:/output
+    networks:
+      dolev_network:
+        ipv4_address: 172.25.0.18
+    restart: unless-stopped
+
+  p9:
+    build: .
+    container_name: dolev-p9
+    hostname: p9
+    environment:
+      NODE_ID: "p9"
+      CONFIG_FILE: "/config/dolev-network.yaml"
+      ALGORITHM: "dolev"
+    volumes:
+      - ../configs:/config:ro
+      - ./output:/output
+    networks:
+      dolev_network:
+        ipv4_address: 172.25.0.19
+    restart: unless-stopped
+
+networks:
+  dolev_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/24
+          gateway: 172.25.0.1

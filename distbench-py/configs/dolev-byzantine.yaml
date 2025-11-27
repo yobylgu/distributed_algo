@@ -1,0 +1,70 @@
+# Dolev's algorithm configuration WITH ONE BYZANTINE NODE
+# Network with N=10 nodes, 15 edges, connectivity k=3, f=1 Byzantine process
+# This is the exact (2f+1)-connected network from Figure 1 of the homework
+#
+# Topology: 10 nodes {p0, p1, p2, p3, p4, p5, p6, p7, p8, p9}
+# Each node has exactly 3 neighbors for 3-connectivity
+# Source node: p0
+# Byzantine node: p5 (with "drop" behavior - drops 50% of messages)
+
+p0:
+  neighbours: [p1, p7, p9]
+  is_source: true
+  f: 1
+  broadcast_content: "Reliable Byzantine broadcast message"
+  is_byzantine: false
+
+p1:
+  neighbours: [p0, p4, p5]
+  is_source: false
+  f: 1
+  is_byzantine: false
+
+p2:
+  neighbours: [p7, p9, p3]
+  is_source: false
+  f: 1
+  is_byzantine: false
+
+p3:
+  neighbours: [p2, p7, p6]
+  is_source: false
+  f: 1
+  is_byzantine: false
+
+p4:
+  neighbours: [p1, p5, p8]
+  is_source: false
+  f: 1
+  is_byzantine: false
+
+p5:
+  neighbours: [p1, p4, p6]
+  is_source: false
+  f: 1
+  is_byzantine: true
+  byzantine_behavior: "drop"
+
+p6:
+  neighbours: [p3, p5, p8]
+  is_source: false
+  f: 1
+  is_byzantine: false
+
+p7:
+  neighbours: [p0, p2, p3]
+  is_source: false
+  f: 1
+  is_byzantine: false
+
+p8:
+  neighbours: [p4, p6, p9]
+  is_source: false
+  f: 1
+  is_byzantine: false
+
+p9:
+  neighbours: [p0, p2, p8]
+  is_source: false
+  f: 1
+  is_byzantine: false

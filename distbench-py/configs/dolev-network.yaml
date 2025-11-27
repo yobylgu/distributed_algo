@@ -1,0 +1,74 @@
+# Dolev's algorithm configuration for network mode (Docker)
+# Network with N=10 nodes, 15 edges, connectivity k=3, f=1 Byzantine process
+# Each node needs host and port for TCP connections
+
+p0:
+  host: "p0"
+  port: 8000
+  neighbours: [p1, p7, p9]
+  is_source: true
+  f: 1
+  broadcast_content: "Reliable Byzantine broadcast message"
+
+p1:
+  host: "p1"
+  port: 8001
+  neighbours: [p0, p4, p5]
+  is_source: false
+  f: 1
+
+p2:
+  host: "p2"
+  port: 8002
+  neighbours: [p7, p9, p3]
+  is_source: false
+  f: 1
+
+p3:
+  host: "p3"
+  port: 8003
+  neighbours: [p2, p7, p6]
+  is_source: false
+  f: 1
+
+p4:
+  host: "p4"
+  port: 8004
+  neighbours: [p1, p5, p8]
+  is_source: false
+  f: 1
+
+p5:
+  host: "p5"
+  port: 8005
+  neighbours: [p1, p4, p6]
+  is_source: false
+  f: 1
+
+p6:
+  host: "p6"
+  port: 8006
+  neighbours: [p3, p5, p8]
+  is_source: false
+  f: 1
+
+p7:
+  host: "p7"
+  port: 8007
+  neighbours: [p0, p2, p3]
+  is_source: false
+  f: 1
+
+p8:
+  host: "p8"
+  port: 8008
+  neighbours: [p4, p6, p9]
+  is_source: false
+  f: 1
+
+p9:
+  host: "p9"
+  port: 8009
+  neighbours: [p0, p2, p8]
+  is_source: false
+  f: 1
