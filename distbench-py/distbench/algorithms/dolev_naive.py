@@ -10,8 +10,6 @@ import json
 from distbench import Algorithm, PeerId
 from distbench.decorators import message, handler, config_field, distbench
 
-logger = logging.getLogger(__name__)
-
 
 @message
 class DMsg:
@@ -41,6 +39,19 @@ class DolevNaive(Algorithm):
         self.messages_forwarded = 0
 
     async def on_start(self):
+        self.logger = logging.getLogger(f"dolev-naive-{self.id()}")
+        self.logger.setLevel(logging.INFO)
+        self.logger.propagate = False
+
+        if not self.logger.handlers:
+            fh = logging.FileHandler(f"{self.id()}.txt", mode="w")
+            fh.setLevel(logging.INFO)
+            formatter = logging.Formatter(
+                "%(asctime)s [%(name)s] %(levelname)s : %(message)s"
+            )
+            fh.setFormatter(formatter)
+            self.logger.addHandler(fh)
+
         self.neighbour_ids = {str(pid) for pid in self.community.neighbours}
         print(f" DOLEV LOADED WITH NEIGHBOURS: {self.neighbour_ids}")
 
@@ -49,10 +60,10 @@ class DolevNaive(Algorithm):
 
         await asyncio.sleep(15.0)
 
-        logger.info(f"[{self.id()}] Terminating. Delivered {len(self.delivered)} messages.")
-        await self.terminate()
+        self.logger.info(f"[{self.id()}] Terminating. Delivered {len(self.delivered)} messages.")
 
-    async def on_exit(self) -> None:
+        self.logger.info(f"[{self.id()}] Terminating. Delivered {len(self.delivered)} messages.")
+
         latencies = []
         for msg_id, data in self.message_metrics.items():
             if data.get("delivery_time") and data.get("broadcast_time"):
@@ -66,17 +77,16 @@ class DolevNaive(Algorithm):
             "total_messages_sent": self.total_messages_sent,
             "messages_forwarded": self.messages_forwarded,
             "delivered_count": len(self.delivered),
-            "avg_latency_ms": sum(latencies)/len(latencies) if latencies else 0,
+            "avg_latency_ms": sum(latencies) / len(latencies) if latencies else 0,
             "min_latency_ms": min(latencies) if latencies else 0,
             "max_latency_ms": max(latencies) if latencies else 0,
         }
 
-        logger.info(f"METRICS_JSON: {json.dumps(metrics_output)}")
-        logger.info(f"[{self.id()}] finished")
+        self.logger.info(f"METRICS_JSON: {json.dumps(metrics_output)}")
+        await self.terminate()
 
     async def delay(self):
         await asyncio.sleep(random.uniform(0, self.max_delay))
-
 
     async def broadcast_message(self):
         msg_id = str(uuid.uuid4())
@@ -88,13 +98,12 @@ class DolevNaive(Algorithm):
         }
 
         msg = DMsg(msg_id, self_id, self.payload, [])
-        logger.info(f"[{self.id()}] BROADCAST ----> {msg_id}")
+        self.logger.info(f"[{self.id()}] BROADCAST ----> {msg_id}")
 
         for peer in self.peers.values():
             if str(peer.peer_id) in self.neighbour_ids:
                 await peer.dolev(msg)
                 self.total_messages_sent += 1
-
 
     @handler
     async def dolev(self, src: PeerId, msg: DMsg):
@@ -111,7 +120,7 @@ class DolevNaive(Algorithm):
             }
 
         new_path = msg.path + [src_id]
-        logger.info(f"[{self.id()}] recv {msg_id} from {src_id} path={msg.path}")
+        self.logger.info(f"[{self.id()}] recv {msg_id} from {src_id} path={msg.path}")
 
         self.paths.setdefault(msg_id, [])
         if new_path not in self.paths[msg_id]:
@@ -136,7 +145,7 @@ class DolevNaive(Algorithm):
         if self.distPaths(paths, msg.source):
             self.delivered.add(msg_id)
             self.message_metrics[msg_id]["delivery_time"] = time.time()
-            logger.info(f"[{self.id()}] DELIVER {msg_id}")
+            self.logger.info(f"[{self.id()}] DELIVER {msg_id}")
 
     def distPaths(self, paths: List[List[str]], source: str) -> bool:
         needed = self.f + 1
