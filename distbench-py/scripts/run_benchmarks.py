@@ -21,7 +21,7 @@ def run_single_trial(config_path: Path, latency: str, timeout: int = 30) -> dict
         'uv', 'run', 'distbench',
         '-c', str(config_path),
         '-a', 'dolev',
-        '--mode', 'offline',
+        '--mode', 'local',
         '--latency', latency,
         '--timeout', str(timeout)
     ]
