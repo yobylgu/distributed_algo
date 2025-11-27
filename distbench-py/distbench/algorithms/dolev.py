@@ -75,9 +75,7 @@ class Dolev(Algorithm):
         await asyncio.sleep(5.0)
 
         self.logger.info(f"[{self.id()}] Terminating. Delivered {len(self.delivered)} messages.")
-        await self.terminate()
 
-    async def on_exit(self) -> None:
         latencies = []
         for msg_id, data in self.message_metrics.items():
             if data.get("delivery_time") and data.get("broadcast_time"):
@@ -91,13 +89,13 @@ class Dolev(Algorithm):
             "total_messages_sent": self.total_messages_sent,
             "messages_forwarded": self.messages_forwarded,
             "delivered_count": len(self.delivered),
-            "avg_latency_ms": sum(latencies)/len(latencies) if latencies else 0,
+            "avg_latency_ms": sum(latencies) / len(latencies) if latencies else 0,
             "min_latency_ms": min(latencies) if latencies else 0,
             "max_latency_ms": max(latencies) if latencies else 0,
         }
 
         self.logger.info(f"METRICS_JSON: {json.dumps(metrics_output)}")
-        self.logger.info(f"[{self.id()}] finished")
+        await self.terminate()
 
     async def delay(self):
         await asyncio.sleep(random.uniform(0, self.max_delay))
