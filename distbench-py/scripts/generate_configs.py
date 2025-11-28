@@ -80,10 +80,12 @@ def main():
     
     if args.mode == 'byzantine' or args.mode == 'all':
         print("Generating configs with varying Byzantine nodes...")
-        n = 10
-        f = 1
-        k = 2 * f + 1
-        for num_byz in [0, 1]:
+        # Use n=16, f=2, k=5 to allow testing with 0, 1, 2 Byzantine nodes
+        # Constraints: n > 3f (16 > 6), k > 2f (5 > 4)
+        n = 16
+        f = 2
+        k = 5
+        for num_byz in [0, 1, 2]:
             output_path = output_dir / f'n_{n}_f_{f}_k_{k}_byz_{num_byz}.yaml'
             generate_config(n, f, k, num_byzantine=num_byz, output_path=output_path)
     
