@@ -232,13 +232,15 @@ class Dolev(Algorithm):
                     self.total_messages_sent += 1
 
             self.forwarded_empty.add(msg_id)
-            self.paths[msg_id] = []
 
     def distPaths(self, paths: List[List[str]], source: str) -> bool:
         needed = self.f + 1
         chosen: List[Set[str]] = []
 
-        for path in paths:
+        # Sort paths by length (shortest first)
+        sorted_paths = sorted(paths, key=len)
+
+        for path in sorted_paths:
             internal = set(path)
             internal.discard(source)
             internal.discard(str(self.id()))
