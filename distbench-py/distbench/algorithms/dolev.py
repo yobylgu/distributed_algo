@@ -5,6 +5,7 @@ import random
 import asyncio
 import time
 import json
+import networkx as nx
 
 from distbench import Algorithm, PeerId
 from distbench.decorators import message, handler, config_field, distbench
@@ -76,7 +77,9 @@ class Dolev(Algorithm):
                 if i < self.num_messages - 1:
                     await asyncio.sleep(0.1)  # Small delay between sequential broadcasts
 
-        await asyncio.sleep(5.0)
+        # Wait longer for sequential broadcasts to propagate (1.5s per message + 2s buffer)
+        wait_time = 2.0 + (self.num_messages * 1.5) if self.is_sender else 10.0
+        await asyncio.sleep(wait_time)
 
         self.logger.info(f"[{self.id()}] Terminating. Delivered {len(self.delivered)} messages.")
 
@@ -119,7 +122,7 @@ class Dolev(Algorithm):
         if msg_id not in self.delivered:
             self.delivered.add(msg_id)
             self.message_metrics[msg_id]["delivery_time"] = time.time()
-            self.logger.info(f"[{self.id()}] DELIVER (sender local) {msg_id}")
+            self.logger.info(f"[{self.id()}] DELIVER (sender local) {msg_id} payload='{self.payload}'")
 
         # BYZANTINE_SELECTIVE: Only send to subset of neighbors (breaks totality)
         if self.behavior_mode == "BYZANTINE_SELECTIVE":
@@ -151,6 +154,17 @@ class Dolev(Algorithm):
             return
 
         msg_id = msg.msg_id
+
+        # RC-INTEGRITY CHECK for authenticated channels
+        # For direct messages (empty path), verify sender matches claimed source
+        if not msg.path:  # Empty path = direct from source claim
+            if src_id != msg.source:
+                self.logger.warning(
+                    f"[{self.id()}] RC-INTEGRITY VIOLATION: "
+                    f"Received message claiming source={msg.source} "
+                    f"but actual sender={src_id}. REJECTING spoofed message."
+                )
+                return  # REJECT the spoofed message
 
         #MD5 stop all activity for msg, we done
         if msg.msg_id in self.delivered and msg.msg_id in self.forwarded_empty:
@@ -206,7 +220,7 @@ class Dolev(Algorithm):
         if direct and msg_id not in self.delivered:
             self.delivered.add(msg_id)
             self.message_metrics.setdefault(msg_id, {})["delivery_time"] = time.time()
-            self.logger.info(f"[{self.id()}] DELIVER (MD1 direct) {msg_id}")
+            self.logger.info(f"[{self.id()}] DELIVER (MD1 direct) {msg_id} payload='{msg.payload}' source={msg.source}")
 
         # deliver needs if to guard empty forward for one exec
         elif msg_id not in self.delivered:
@@ -215,7 +229,7 @@ class Dolev(Algorithm):
                 self.delivered.add(msg_id)
                 self.neighbour_delivered.setdefault(msg_id, set()).add(str(self.id()))
                 self.message_metrics[msg_id]["delivery_time"] = time.time()
-                self.logger.info(f"[{self.id()}] DELIVER {msg_id}")
+                self.logger.info(f"[{self.id()}] DELIVER {msg_id} payload='{msg.payload}' source={msg.source}")
         else:
             return
 
@@ -234,22 +248,33 @@ class Dolev(Algorithm):
             self.forwarded_empty.add(msg_id)
 
     def distPaths(self, paths: List[List[str]], source: str) -> bool:
+        """
+        Check if there are f+1 node-disjoint paths from source to this node.
+        Uses NetworkX's node_connectivity which implements max-flow (Menger's theorem).
+        This is mathematically correct, unlike the previous greedy approach.
+        """
         needed = self.f + 1
-        chosen: List[Set[str]] = []
 
-        # Sort paths by length (shortest first)
-        sorted_paths = sorted(paths, key=len)
+        if not paths:
+            return False
 
-        for path in sorted_paths:
-            internal = set(path)
-            internal.discard(source)
-            internal.discard(str(self.id()))
+        # Build graph from received paths
+        G = nx.Graph()  # Undirected for node-disjoint paths
 
-            if any(internal & used for used in chosen):
-                continue
-            chosen.append(internal)
+        # Add all edges from paths
+        for path in paths:
+            full_path = [source] + path + [str(self.id())]
+            for i in range(len(full_path) - 1):
+                G.add_edge(full_path[i], full_path[i+1])
 
-            if len(chosen) >= needed:
-                return True
+        # Check if source and destination are connected
+        if not nx.has_path(G, source, str(self.id())):
+            return False
 
-        return False
+        # Use Menger's theorem: node_connectivity gives max node-disjoint paths
+        try:
+            disjoint_count = nx.node_connectivity(G, source, str(self.id()))
+            self.logger.debug(f"[{self.id()}] Found {disjoint_count} disjoint paths from {source}, need {needed}")
+            return disjoint_count >= needed
+        except nx.NetworkXError:
+            return False
