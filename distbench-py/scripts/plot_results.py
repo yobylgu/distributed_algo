@@ -162,6 +162,8 @@ def main():
     parser.add_argument('--output-dir', '-o', type=str, default='results/plots', help='Output directory for plots')
     parser.add_argument('--param', '-p', choices=['n', 'byzantine', 'connectivity'], required=True,
                         help='Parameter to plot against')
+    parser.add_argument('--latency', '-l', type=str, default='0_0',
+                        help='Latency mode to filter (e.g., "0_0" or "20_50")')
     
     args = parser.parse_args()
     results_dir = Path(args.results_dir)
@@ -175,29 +177,49 @@ def main():
     for json_file in results_dir.glob('*.json'):
         with open(json_file, 'r') as f:
             data = json.load(f)
-        
-        # Extract parameter value from filename
+
+        # Extract parameter value from filename using key-value parsing
+        # Filename format: n_10_f_1_k_3_byz_0_lat_0_0_trial_0
         filename = json_file.stem
+        parts = filename.split('_')
+        params = {}
+        i = 0
+        while i < len(parts) - 1:
+            if parts[i] in ('n', 'f', 'k', 'byz', 'lat', 'trial'):
+                if parts[i] == 'lat' and i + 2 < len(parts):
+                    # Latency has two parts: lat_0_0
+                    params[parts[i]] = f"{parts[i + 1]}_{parts[i + 2]}"
+                    i += 1
+                else:
+                    params[parts[i]] = parts[i + 1]
+            i += 1
+
+        # Filter by latency mode
+        if params.get('lat', '0_0') != args.latency:
+            continue
+
         if args.param == 'n':
-            param_val = int(filename.split('_')[1])
+            param_val = int(params.get('n', 0))
         elif args.param == 'byzantine':
-            param_val = int(filename.split('_')[3])
+            param_val = int(params.get('byz', 0))
         elif args.param == 'connectivity':
-            param_val = int(filename.split('_')[5])
-        
+            param_val = int(params.get('k', 0))
+
         if param_val not in results_by_param:
             results_by_param[param_val] = []
         results_by_param[param_val].append(data)
     
-    # Generate plots
+    # Generate plots with latency mode in filename
+    latency_suffix = f"_lat_{args.latency}" if args.latency != '0_0' else ''
+
     if args.param == 'n':
-        output_path = output_dir / 'latency_msgcomplexity_vs_n.png'
+        output_path = output_dir / f'latency_msgcomplexity_vs_n{latency_suffix}.png'
         plot_vs_n(results_by_param, output_path)
     elif args.param == 'byzantine':
-        output_path = output_dir / 'latency_msgcomplexity_vs_byzantine.png'
+        output_path = output_dir / f'latency_msgcomplexity_vs_byzantine{latency_suffix}.png'
         plot_vs_byzantine(results_by_param, output_path)
     elif args.param == 'connectivity':
-        output_path = output_dir / 'latency_msgcomplexity_vs_connectivity.png'
+        output_path = output_dir / f'latency_msgcomplexity_vs_connectivity{latency_suffix}.png'
         plot_vs_connectivity(results_by_param, output_path)
 
 
