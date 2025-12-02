@@ -40,6 +40,7 @@ class Dolev(Algorithm):
         self.message_metrics: Dict[str, Dict] = {}
         self.total_messages_sent = 0
         self.messages_forwarded = 0
+        self.logger = logging.getLogger("PLACEHOLDER")
 
     async def on_start(self):
         self.logger = logging.getLogger(f"dolev-{self.id()}")
@@ -102,10 +103,29 @@ class Dolev(Algorithm):
         }
 
         self.logger.info(f"METRICS_JSON: {json.dumps(metrics_output)}")
+        if self._parent and hasattr(self._parent, "dolev_ready"):
+            await self._parent.dolev_ready()
+
         await self.terminate()
 
     async def delay(self):
         await asyncio.sleep(random.uniform(0, self.max_delay))
+
+    async def yes_daddy_bracha(self, bracha_msg):
+        # im gonna blow my brains out
+        if not self.neighbour_ids:
+            self.neighbour_ids = {str(pid) for pid in self.community.neighbours}
+
+        msg_id = bracha_msg.msg_id
+        sender_id = str(self._parent.id()) if self._parent else self.id()
+        dmsg = DMsg(msg_id, sender_id, bracha_msg, [])
+        print("DOING DADDDY BRAAAACHAAA")
+        for peer in self.peers.values():
+            if str(peer.peer_id) in self.neighbour_ids:
+                print("DOING DADDDY BRAAAACHAAA", peer)
+                await self.delay()
+                await peer.dolev(dmsg)
+                self.total_messages_sent += 1
 
     async def broadcast_message(self):
         msg_id = str(uuid.uuid4())
@@ -145,6 +165,7 @@ class Dolev(Algorithm):
     @handler
     async def dolev(self, src: PeerId, msg: DMsg):
         # BYZANTINE_SILENT: Drop all messages
+        print(" FUCK YOU FUCK YOU FUCK YOU FUCK YOU FUCK YOU")
         if self.behavior_mode == "BYZANTINE_SILENT":
             self.logger.info(f"[{self.id()}] BYZANTINE SILENT: Dropping message from {src}")
             return
@@ -222,6 +243,10 @@ class Dolev(Algorithm):
             self.message_metrics.setdefault(msg_id, {})["delivery_time"] = time.time()
             self.logger.info(f"[{self.id()}] DELIVER (MD1 direct) {msg_id} payload='{msg.payload}' source={msg.source}")
 
+            # up to daddy bracha (directly)
+            if self._parent:
+                await self._parent.dolev_deliver(src=msg.source, msg=msg)
+
         # deliver needs if to guard empty forward for one exec
         elif msg_id not in self.delivered:
             paths = self.paths.get(msg_id, [])
@@ -230,6 +255,10 @@ class Dolev(Algorithm):
                 self.neighbour_delivered.setdefault(msg_id, set()).add(str(self.id()))
                 self.message_metrics[msg_id]["delivery_time"] = time.time()
                 self.logger.info(f"[{self.id()}] DELIVER {msg_id} payload='{msg.payload}' source={msg.source}")
+                # up to daddy bracha (standard)
+                if self._parent:
+                    await self._parent.dolev_deliver(src=msg.source, msg=msg)
+
         else:
             return
 
