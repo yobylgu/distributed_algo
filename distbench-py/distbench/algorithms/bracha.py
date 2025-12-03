@@ -72,6 +72,7 @@ class Bracha(Algorithm):
             await self.bracha("send", msg)
             self.seen_messages.add(msg_id)
             self.sent_echo[msg_id] = True
+            self.echos[msg_id].add(str(self.id()))  # Count own ECHO
             await self.bracha("echo", BrachaMessage("echo", msg.sender, msg_id, msg.payload))
 
         # Fallback timeout - wait for algorithm to complete or timeout
@@ -108,6 +109,7 @@ class Bracha(Algorithm):
         if msg_id not in self.seen_messages:
             self.seen_messages.add(msg_id)
             self.sent_echo[msg_id] = True
+            self.echos[msg_id].add(str(self.id()))  # Count own ECHO
             await self.bracha("echo", BrachaMessage("echo", msg.sender, msg_id, msg.payload))
 
     @handler
