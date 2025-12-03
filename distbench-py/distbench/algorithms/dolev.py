@@ -72,41 +72,43 @@ class Dolev(Algorithm):
                         await self.delay()
                         await peer.dolev(fake_msg)
 
-        if self.is_sender:
-            for i in range(self.num_messages):
-                await self.broadcast_message()
-                if i < self.num_messages - 1:
-                    await asyncio.sleep(0.1)  # Small delay between sequential broadcasts
+        # Only run standalone Dolev logic if not used as a child algorithm
+        if self._parent is None:
+            if self.is_sender:
+                for i in range(self.num_messages):
+                    await self.broadcast_message()
+                    if i < self.num_messages - 1:
+                        await asyncio.sleep(0.1)  # Small delay between sequential broadcasts
 
-        # Wait longer for sequential broadcasts to propagate (1.5s per message + 2s buffer)
-        wait_time = 2.0 + (self.num_messages * 1.5) if self.is_sender else 10.0
-        await asyncio.sleep(wait_time)
+            # Wait longer for sequential broadcasts to propagate (1.5s per message + 2s buffer)
+            wait_time = 2.0 + (self.num_messages * 1.5) if self.is_sender else 10.0
+            await asyncio.sleep(wait_time)
 
-        self.logger.info(f"[{self.id()}] Terminating. Delivered {len(self.delivered)} messages.")
+            self.logger.info(f"[{self.id()}] Terminating. Delivered {len(self.delivered)} messages.")
 
-        latencies = []
-        for msg_id, data in self.message_metrics.items():
-            if data.get("delivery_time") and data.get("broadcast_time"):
-                latencies.append((data["delivery_time"] - data["broadcast_time"]) * 1000)
+            latencies = []
+            for msg_id, data in self.message_metrics.items():
+                if data.get("delivery_time") and data.get("broadcast_time"):
+                    latencies.append((data["delivery_time"] - data["broadcast_time"]) * 1000)
 
-        metrics_output = {
-            "node_id": str(self.id()),
-            "neighbours_per_node": len(self.neighbour_ids),
-            "f": self.f,
-            "is_sender": self.is_sender,
-            "total_messages_sent": self.total_messages_sent,
-            "messages_forwarded": self.messages_forwarded,
-            "delivered_count": len(self.delivered),
-            "avg_latency_ms": sum(latencies) / len(latencies) if latencies else 0,
-            "min_latency_ms": min(latencies) if latencies else 0,
-            "max_latency_ms": max(latencies) if latencies else 0,
-        }
+            metrics_output = {
+                "node_id": str(self.id()),
+                "neighbours_per_node": len(self.neighbour_ids),
+                "f": self.f,
+                "is_sender": self.is_sender,
+                "total_messages_sent": self.total_messages_sent,
+                "messages_forwarded": self.messages_forwarded,
+                "delivered_count": len(self.delivered),
+                "avg_latency_ms": sum(latencies) / len(latencies) if latencies else 0,
+                "min_latency_ms": min(latencies) if latencies else 0,
+                "max_latency_ms": max(latencies) if latencies else 0,
+            }
 
-        self.logger.info(f"METRICS_JSON: {json.dumps(metrics_output)}")
-        if self._parent and hasattr(self._parent, "dolev_ready"):
-            await self._parent.dolev_ready()
-
-        await self.terminate()
+            self.logger.info(f"METRICS_JSON: {json.dumps(metrics_output)}")
+            await self.terminate()
+        else:
+            # When used as a child, just log that we're ready
+            self.logger.info(f"[{self.id()}] Dolev child ready, controlled by parent algorithm")
 
     async def delay(self):
         await asyncio.sleep(random.uniform(0, self.max_delay))
