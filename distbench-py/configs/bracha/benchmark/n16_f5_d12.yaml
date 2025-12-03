@@ -1,0 +1,304 @@
+n0:
+  host: 127.0.0.1
+  port: 10000
+  neighbours:
+  - n5
+  - n14
+  - n7
+  - n9
+  - n2
+  - n11
+  - n4
+  - n6
+  - n15
+  - n1
+  - n3
+  - n12
+  is_sender: true
+  f: 5
+  behavior_mode: HONEST
+n1:
+  host: 127.0.0.1
+  port: 10001
+  neighbours:
+  - n0
+  - n15
+  - n8
+  - n10
+  - n3
+  - n14
+  - n7
+  - n9
+  - n2
+  - n11
+  - n4
+  - n13
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n2:
+  host: 127.0.0.1
+  port: 10002
+  neighbours:
+  - n0
+  - n1
+  - n11
+  - n13
+  - n6
+  - n15
+  - n8
+  - n3
+  - n12
+  - n14
+  - n7
+  - n9
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n3:
+  host: 127.0.0.1
+  port: 10003
+  neighbours:
+  - n0
+  - n1
+  - n2
+  - n13
+  - n6
+  - n15
+  - n8
+  - n12
+  - n5
+  - n7
+  - n9
+  - n11
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n4:
+  host: 127.0.0.1
+  port: 10004
+  neighbours:
+  - n0
+  - n1
+  - n9
+  - n11
+  - n13
+  - n6
+  - n15
+  - n8
+  - n10
+  - n12
+  - n5
+  - n7
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n5:
+  host: 127.0.0.1
+  port: 10005
+  neighbours:
+  - n0
+  - n3
+  - n4
+  - n10
+  - n12
+  - n14
+  - n7
+  - n9
+  - n13
+  - n6
+  - n15
+  - n8
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n6:
+  host: 127.0.0.1
+  port: 10006
+  neighbours:
+  - n0
+  - n2
+  - n3
+  - n4
+  - n5
+  - n11
+  - n15
+  - n8
+  - n10
+  - n14
+  - n7
+  - n9
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n7:
+  host: 127.0.0.1
+  port: 10007
+  neighbours:
+  - n0
+  - n1
+  - n2
+  - n3
+  - n4
+  - n5
+  - n6
+  - n10
+  - n9
+  - n11
+  - n13
+  - n8
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n8:
+  host: 127.0.0.1
+  port: 10008
+  neighbours:
+  - n1
+  - n2
+  - n3
+  - n4
+  - n5
+  - n6
+  - n7
+  - n13
+  - n15
+  - n10
+  - n12
+  - n14
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n9:
+  host: 127.0.0.1
+  port: 10009
+  neighbours:
+  - n0
+  - n1
+  - n2
+  - n3
+  - n4
+  - n5
+  - n6
+  - n7
+  - n10
+  - n12
+  - n14
+  - n11
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n10:
+  host: 127.0.0.1
+  port: 10010
+  neighbours:
+  - n1
+  - n4
+  - n5
+  - n6
+  - n7
+  - n8
+  - n9
+  - n15
+  - n12
+  - n14
+  - n11
+  - n13
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n11:
+  host: 127.0.0.1
+  port: 10011
+  neighbours:
+  - n0
+  - n1
+  - n2
+  - n3
+  - n4
+  - n6
+  - n7
+  - n9
+  - n10
+  - n14
+  - n13
+  - n12
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n12:
+  host: 127.0.0.1
+  port: 10012
+  neighbours:
+  - n0
+  - n2
+  - n3
+  - n4
+  - n5
+  - n8
+  - n9
+  - n10
+  - n11
+  - n13
+  - n15
+  - n14
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n13:
+  host: 127.0.0.1
+  port: 10013
+  neighbours:
+  - n1
+  - n2
+  - n3
+  - n4
+  - n5
+  - n7
+  - n8
+  - n10
+  - n11
+  - n12
+  - n14
+  - n15
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n14:
+  host: 127.0.0.1
+  port: 10014
+  neighbours:
+  - n0
+  - n1
+  - n2
+  - n5
+  - n6
+  - n8
+  - n9
+  - n10
+  - n11
+  - n12
+  - n13
+  - n15
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST
+n15:
+  host: 127.0.0.1
+  port: 10015
+  neighbours:
+  - n0
+  - n1
+  - n2
+  - n3
+  - n4
+  - n5
+  - n6
+  - n8
+  - n10
+  - n12
+  - n13
+  - n14
+  is_sender: false
+  f: 5
+  behavior_mode: HONEST

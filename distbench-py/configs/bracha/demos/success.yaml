@@ -1,0 +1,110 @@
+n0:
+  host: 127.0.0.1
+  port: 10000
+  neighbours:
+  - n5
+  - n8
+  - n4
+  - n3
+  is_sender: true
+  f: 1
+  behavior_mode: HONEST
+n1:
+  host: 127.0.0.1
+  port: 10001
+  neighbours:
+  - n6
+  - n2
+  - n4
+  - n7
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+n2:
+  host: 127.0.0.1
+  port: 10002
+  neighbours:
+  - n1
+  - n5
+  - n3
+  - n9
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+n3:
+  host: 127.0.0.1
+  port: 10003
+  neighbours:
+  - n0
+  - n2
+  - n9
+  - n6
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+n4:
+  host: 127.0.0.1
+  port: 10004
+  neighbours:
+  - n0
+  - n1
+  - n6
+  - n8
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+n5:
+  host: 127.0.0.1
+  port: 10005
+  neighbours:
+  - n0
+  - n2
+  - n7
+  - n9
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+n6:
+  host: 127.0.0.1
+  port: 10006
+  neighbours:
+  - n1
+  - n3
+  - n4
+  - n7
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+n7:
+  host: 127.0.0.1
+  port: 10007
+  neighbours:
+  - n1
+  - n5
+  - n6
+  - n8
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+n8:
+  host: 127.0.0.1
+  port: 10008
+  neighbours:
+  - n0
+  - n4
+  - n7
+  - n9
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+n9:
+  host: 127.0.0.1
+  port: 10009
+  neighbours:
+  - n2
+  - n3
+  - n5
+  - n8
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
