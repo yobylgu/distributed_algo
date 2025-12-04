@@ -30,7 +30,7 @@ class BrachaOptimized(Algorithm):
     enable_single_hop_send: bool = config_field(default=True)
     enable_reduced_messages: bool = config_field(default=True)
 
-    dolev: Dolev = child_algorithm(Dolev)
+    dolev_alg: Dolev = child_algorithm(Dolev)
 
     def __init__(self, config: dict, peers: dict):
         super().__init__()
@@ -60,14 +60,6 @@ class BrachaOptimized(Algorithm):
                 "Set enable_echo_amplification=True or disable enable_single_hop_send."
             )
 
-        # Log active optimizations
-        logger.info(
-            f"[{self.id()}] Bracha Optimized - "
-            f"Echo Amp: {self.enable_echo_amplification}, "
-            f"Single-hop: {self.enable_single_hop_send}, "
-            f"Reduced Msgs: {self.enable_reduced_messages}"
-        )
-
     # dicts for messages otherwise it explodes
     def init_state(self, msg_id):
         if msg_id not in self.echos:
@@ -79,13 +71,19 @@ class BrachaOptimized(Algorithm):
 
     def calculate_eligible_nodes(self, sender_id: str, count: int) -> set[str]:
         """Calculate the 'count' smallest node IDs after sender in circular order."""
-        all_ids = sorted([str(self.id())] + [str(p.peer_id) for p in self.peers.values()])
+        try:
+            my_id = str(self.id())
+        except RuntimeError:
+            # Node ID not set yet - return empty set
+            return set()
+
+        all_ids = sorted([my_id] + [str(p.peer_id) for p in self.peers.values()])
         n = len(all_ids)
 
         try:
             sender_idx = all_ids.index(sender_id)
         except ValueError:
-            logger.warning(f"[{self.id()}] Sender {sender_id} not found in node list")
+            logger.warning(f"[{my_id}] Sender {sender_id} not found in node list")
             return set()
 
         eligible = set()
@@ -96,22 +94,46 @@ class BrachaOptimized(Algorithm):
 
     def should_generate_echo(self, sender_id: str) -> bool:
         """Check if this node should generate ECHO (MBD.11 optimization)."""
+        try:
+            my_id = str(self.id())
+        except RuntimeError:
+            # Node ID not set yet - allow generation (safe default)
+            return True
+
         count = math.ceil((self.N + self.f + 1) / 2) + self.f
         eligible = self.calculate_eligible_nodes(sender_id, count)
-        return str(self.id()) in eligible
+        return my_id in eligible
 
     def should_generate_ready(self, sender_id: str) -> bool:
         """Check if this node should generate READY (MBD.11 optimization)."""
+        try:
+            my_id = str(self.id())
+        except RuntimeError:
+            # Node ID not set yet - allow generation (safe default)
+            return True
+
         count = (2 * self.f + 1) + self.f
         eligible = self.calculate_eligible_nodes(sender_id, count)
-        return str(self.id()) in eligible
+        return my_id in eligible
 
     async def on_start(self):
         self.start_time = time.time()
+
+        # Manually initialize Dolev child's neighbour_ids to avoid community access issues
+        # This is needed for single-hop send where we call peer.send() before their Dolev is ready
+        if hasattr(self.dolev_alg, 'neighbour_ids') and self.community:
+            self.dolev_alg.neighbour_ids = {str(pid) for pid in self.community.neighbours}
+
         logger.info(
             f"[{self.id()}] Bracha Optimized starting "
             f"(N={self.N}, f={self.f}, "
             f"thresholds: echo={self.ready_threshold}, ready={self.deliver_threshold})"
+        )
+        logger.info(
+            f"[{self.id()}] Optimizations - "
+            f"Echo Amp: {self.enable_echo_amplification}, "
+            f"Single-hop: {self.enable_single_hop_send}, "
+            f"Reduced Msgs: {self.enable_reduced_messages}"
         )
 
         if self.is_sender:
@@ -127,10 +149,14 @@ class BrachaOptimized(Algorithm):
                 logger.info(f"[{self.id()}] Single-hop Send: Sending SEND to neighbors only")
                 neighbour_ids = {str(pid) for pid in self.community.neighbours}
 
-                dmsg = DMsg(msg_id, str(self.id()), msg, [])
+                # Delay to ensure all peer nodes have completed initialization
+                # This ensures child Dolev algorithms have self.community set
+                await asyncio.sleep(1.0)
+
+                # Send directly to neighbor Bracha instances (bypass Dolev broadcast)
                 for peer in self.peers.values():
                     if str(peer.peer_id) in neighbour_ids:
-                        await peer.dolev(dmsg)
+                        await peer.send(msg)
                         self.messages_sent += 1
             else:
                 # Standard: Broadcast SEND via full Dolev
@@ -152,12 +178,31 @@ class BrachaOptimized(Algorithm):
     async def bracha(self, method: str, msg: BrachaMessage):
         logger.info(f"[{self.id()}] BRACHA {method} {msg}")
         self.messages_sent += 1
-        await self.dolev.yes_daddy_bracha(msg)
+        await self.dolev_alg.yes_daddy_bracha(msg)
 
-    @handler(from_child="dolev")
+    @handler
+    async def dolev(self, src: PeerId, msg: DMsg):
+        """
+        Route incoming Dolev network messages to the Dolev child algorithm.
+
+        CRITICAL: When Dolev broadcasts DMsg packets over the network (for ECHO/READY),
+        they arrive at peer BrachaOptimized instances. Without this handler, they get
+        dropped with "Unhandled message type: dolev" warnings.
+
+        This forwards the DMsg to the child Dolev for processing.
+        """
+        await self.dolev_alg.dolev(src, msg)
+
+    @handler(from_child="dolev_alg")
     async def dolev_deliver(self, src: PeerId, msg: DMsg):
         self.messages_received += 1
-        b_msg = msg.payload
+        # msg.payload is a dict when deserialized - convert to BrachaMessage
+        payload = msg.payload
+        if isinstance(payload, dict):
+            b_msg = BrachaMessage(**payload)
+        else:
+            b_msg = payload
+
         if b_msg.phase == "send":
             # Track sender for dynamic completion detection
             self.expected_senders.add(str(b_msg.sender))
