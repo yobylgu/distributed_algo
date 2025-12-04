@@ -169,24 +169,24 @@ class BenchmarkRunner:
             "max_latency_ms": 0.0,
         }
 
-        # Parse node-level metrics
+        # Parse node-level metrics from JSON output
+        # Format: {"details":{"messages_sent":"3","messages_received":"7","avg_latency_ms":"5254.73",...}}
         messages_sent_values = []
         messages_received_values = []
         latency_values = []
 
-        # Look for METRICS_JSON or individual metric lines
-        metrics_pattern = r"'messages_sent': '(\d+)'"
-        messages_sent_matches = re.findall(metrics_pattern, output)
+        # Parse messages_sent from JSON (double quotes)
+        messages_sent_matches = re.findall(r'"messages_sent":"(\d+)"', output)
         if messages_sent_matches:
             messages_sent_values = [int(x) for x in messages_sent_matches]
 
-        metrics_pattern = r"'messages_received': '(\d+)'"
-        messages_received_matches = re.findall(metrics_pattern, output)
+        # Parse messages_received from JSON (double quotes)
+        messages_received_matches = re.findall(r'"messages_received":"(\d+)"', output)
         if messages_received_matches:
             messages_received_values = [int(x) for x in messages_received_matches]
 
-        metrics_pattern = r"'avg_latency_ms': '([\d.]+)'"
-        latency_matches = re.findall(metrics_pattern, output)
+        # Parse avg_latency_ms from JSON (double quotes)
+        latency_matches = re.findall(r'"avg_latency_ms":"([\d.]+)"', output)
         if latency_matches:
             latency_values = [float(x) for x in latency_matches if float(x) > 0]
 

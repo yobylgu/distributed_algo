@@ -227,6 +227,11 @@ class ResultAnalyzer:
                 baseline_latency = data["baseline"][n]["avg_latency_ms"]["mean"]
                 baseline_messages = data["baseline"][n]["total_messages_sent"]["mean"]
 
+                # Skip if baseline has zero values (failed runs)
+                if baseline_latency == 0 or baseline_messages == 0:
+                    f.write("  (baseline data unavailable - skipping)\n")
+                    continue
+
                 for opt in ["echo_amp", "echo_amp_single_hop", "reduced_messages", "full_optimized"]:
                     if opt not in data or n not in data[opt]:
                         continue
