@@ -132,8 +132,12 @@ class Dolev(Algorithm):
         This is because multiple nodes may broadcast ECHOs/READYs for the same
         Bracha message, and Dolev tracks paths per msg_id.
         """
-        if not self.neighbour_ids and self.community:
-            self.neighbour_ids = {str(pid) for pid in self.community.neighbours}
+        # Get neighbors from parent's community when used as child algorithm
+        if not self.neighbour_ids:
+            if self._parent and self._parent.community:
+                self.neighbour_ids = {str(pid) for pid in self._parent.community.neighbours}
+            elif self.community:
+                self.neighbour_ids = {str(pid) for pid in self.community.neighbours}
 
         try:
             sender_id = str(self._parent.id()) if self._parent else str(self.id())
@@ -194,6 +198,13 @@ class Dolev(Algorithm):
         if self.behavior_mode == "BYZANTINE_SILENT":
             self.logger.info(f"[{self._safe_id()}] BYZANTINE SILENT: Dropping message from {src}")
             return
+
+        # Ensure we have neighbor IDs (get from parent if child algorithm)
+        if not self.neighbour_ids:
+            if self._parent and self._parent.community:
+                self.neighbour_ids = {str(pid) for pid in self._parent.community.neighbours}
+            elif self.community:
+                self.neighbour_ids = {str(pid) for pid in self.community.neighbours}
 
         src_id = str(src)
         if src_id not in self.neighbour_ids:

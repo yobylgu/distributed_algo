@@ -25,7 +25,7 @@ class Bracha(Algorithm):
     is_sender: bool = config_field(required=True)
     f: int = config_field(default=1)
 
-    dolev: Dolev = child_algorithm(Dolev)
+    dolev_alg: Dolev = child_algorithm(Dolev)
 
     def __init__(self, config: dict, peers: dict):
         super().__init__()
@@ -61,6 +61,10 @@ class Bracha(Algorithm):
         self.start_time = time.time()
         logger.info(f"[{self.id()}] Bracha starting (N={self.N}, f={self.f}, thresholds: echo={self.ready_threshold}, ready={self.deliver_threshold})")
 
+        # Initialize Dolev child's neighbour_ids from parent's community
+        if hasattr(self.dolev_alg, 'neighbour_ids') and self.community:
+            self.dolev_alg.neighbour_ids = {str(pid) for pid in self.community.neighbours}
+
         if self.is_sender:
             msg_id = str(uuid.uuid4())
             logger.info(f"[{self.id()}] SENDER broadcasting SEND: {msg_id}")
@@ -84,12 +88,31 @@ class Bracha(Algorithm):
     async def bracha(self, method: str, msg: BrachaMessage):
         logger.info(f"[{self.id()}] BRACHA {method} {msg}")
         self.messages_sent += 1
-        await self.dolev.yes_daddy_bracha(msg)
+        await self.dolev_alg.yes_daddy_bracha(msg)
 
-    @handler(from_child="dolev")
+    @handler
+    async def dolev(self, src: PeerId, msg: DMsg):
+        """
+        Route incoming Dolev network messages to the Dolev child algorithm.
+        
+        CRITICAL: When Dolev broadcasts DMsg packets over the network (for ECHO/READY),
+        the parent Bracha receives them. Without this handler, messages are
+        dropped with "Unhandled message type: dolev" warnings.
+        
+        This forwards the DMsg to the child Dolev for processing.
+        """
+        await self.dolev_alg.dolev(src, msg)
+
+    @handler(from_child="dolev_alg")
     async def dolev_deliver(self, src: PeerId, msg: DMsg):
         self.messages_received += 1
-        b_msg = msg.payload
+        # msg.payload is a dict when deserialized - convert to BrachaMessage
+        payload = msg.payload
+        if isinstance(payload, dict):
+            b_msg = BrachaMessage(**payload)
+        else:
+            b_msg = payload
+
         if b_msg.phase == "send":
             # Track sender for dynamic completion detection
             self.expected_senders.add(str(b_msg.sender))
