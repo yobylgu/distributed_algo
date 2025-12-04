@@ -42,20 +42,29 @@ class Dolev(Algorithm):
         self.messages_forwarded = 0
         self.logger = logging.getLogger("PLACEHOLDER")
 
+    def _safe_id(self) -> str:
+        """Get node ID safely, returning 'unknown' if not set yet."""
+        try:
+            return str(self._safe_id())
+        except RuntimeError:
+            return "unknown"
+
     async def on_start(self):
-        self.logger = logging.getLogger(f"dolev-{self.id()}")
+        self.logger = logging.getLogger(f"dolev-{self._safe_id()}")
         self.logger.setLevel(logging.INFO)
         self.logger.propagate = False
 
         if not self.logger.handlers:
-            fh = logging.FileHandler(f"{self.id()}.txt", mode="w")
+            fh = logging.FileHandler(f"{self._safe_id()}.txt", mode="w")
             fh.setLevel(logging.INFO)
             formatter = logging.Formatter("%(asctime)s [%(name)s] %(levelname)s : %(message)s")
             fh.setFormatter(formatter)
             self.logger.addHandler(fh)
 
-        self.neighbour_ids = {str(pid) for pid in self.community.neighbours}
-        print(f" DOLEV LOADED WITH NEIGHBOURS: {self.neighbour_ids}")
+        # When used as child algorithm, community might not be set - parent will set neighbour_ids manually
+        if self.community:
+            self.neighbour_ids = {str(pid) for pid in self.community.neighbours}
+            print(f" DOLEV LOADED WITH NEIGHBOURS: {self.neighbour_ids}")
 
         # BYZANTINE_SPOOF: Send fake message claiming another node is the source
         if self.behavior_mode == "BYZANTINE_SPOOF":
@@ -63,7 +72,7 @@ class Dolev(Algorithm):
             if peer_ids:
                 fake_source = peer_ids[0]  # Spoof first peer
                 fake_msg_id = str(uuid.uuid4())
-                self.logger.info(f"[{self.id()}] BYZANTINE SPOOF: Sending fake message claiming source={fake_source}")
+                self.logger.info(f"[{self._safe_id()}] BYZANTINE SPOOF: Sending fake message claiming source={fake_source}")
 
                 fake_msg = DMsg(fake_msg_id, fake_source,"SPOOFED MESSAGE",[],)
 
@@ -84,7 +93,7 @@ class Dolev(Algorithm):
             wait_time = 2.0 + (self.num_messages * 1.5) if self.is_sender else 10.0
             await asyncio.sleep(wait_time)
 
-            self.logger.info(f"[{self.id()}] Terminating. Delivered {len(self.delivered)} messages.")
+            self.logger.info(f"[{self._safe_id()}] Terminating. Delivered {len(self.delivered)} messages.")
 
             latencies = []
             for msg_id, data in self.message_metrics.items():
@@ -92,7 +101,7 @@ class Dolev(Algorithm):
                     latencies.append((data["delivery_time"] - data["broadcast_time"]) * 1000)
 
             metrics_output = {
-                "node_id": str(self.id()),
+                "node_id": str(self._safe_id()),
                 "neighbours_per_node": len(self.neighbour_ids),
                 "f": self.f,
                 "is_sender": self.is_sender,
@@ -108,18 +117,22 @@ class Dolev(Algorithm):
             await self.terminate()
         else:
             # When used as a child, just log that we're ready
-            self.logger.info(f"[{self.id()}] Dolev child ready, controlled by parent algorithm")
+            self.logger.info(f"[{self._safe_id()}] Dolev child ready, controlled by parent algorithm")
 
     async def delay(self):
         await asyncio.sleep(random.uniform(0, self.max_delay))
 
     async def yes_daddy_bracha(self, bracha_msg):
         # im gonna blow my brains out
-        if not self.neighbour_ids:
+        if not self.neighbour_ids and self.community:
             self.neighbour_ids = {str(pid) for pid in self.community.neighbours}
 
         msg_id = bracha_msg.msg_id
-        sender_id = str(self._parent.id()) if self._parent else self.id()
+        try:
+            sender_id = str(self._parent.id()) if self._parent else self.id()
+        except RuntimeError:
+            # ID not set yet, use a placeholder
+            sender_id = "unknown"
         dmsg = DMsg(msg_id, sender_id, bracha_msg, [])
         print("DOING DADDDY BRAAAACHAAA")
         for peer in self.peers.values():
@@ -131,27 +144,27 @@ class Dolev(Algorithm):
 
     async def broadcast_message(self):
         msg_id = str(uuid.uuid4())
-        self_id = str(self.id())
+        self_id = str(self._safe_id())
         self.message_metrics[msg_id] = {
             "broadcast_time": time.time(),
             "delivery_time": None,
         }
 
         msg = DMsg(msg_id, self_id, self.payload, [])
-        self.logger.info(f"[{self.id()}] BROADCAST ----> {msg_id}")
+        self.logger.info(f"[{self._safe_id()}] BROADCAST ----> {msg_id}")
 
         # async func here messes up (race condition?), origin can deliver to itself offline (maybe)
         if msg_id not in self.delivered:
             self.delivered.add(msg_id)
             self.message_metrics[msg_id]["delivery_time"] = time.time()
-            self.logger.info(f"[{self.id()}] DELIVER (sender local) {msg_id} payload='{self.payload}'")
+            self.logger.info(f"[{self._safe_id()}] DELIVER (sender local) {msg_id} payload='{self.payload}'")
 
         # BYZANTINE_SELECTIVE: Only send to subset of neighbors (breaks totality)
         if self.behavior_mode == "BYZANTINE_SELECTIVE":
             # Only send to first half of neighbors (rounded down)
             target_neighbors = sorted(list(self.neighbour_ids))[:len(self.neighbour_ids) // 2]
             excluded = sorted(list(self.neighbour_ids))[len(self.neighbour_ids) // 2:]
-            self.logger.info(f"[{self.id()}] BYZANTINE SELECTIVE: Sending to {target_neighbors}, excluding {excluded}")
+            self.logger.info(f"[{self._safe_id()}] BYZANTINE SELECTIVE: Sending to {target_neighbors}, excluding {excluded}")
 
             for peer in self.peers.values():
                 if str(peer.peer_id) in target_neighbors:
@@ -169,7 +182,7 @@ class Dolev(Algorithm):
         # BYZANTINE_SILENT: Drop all messages
         print(" FUCK YOU FUCK YOU FUCK YOU FUCK YOU FUCK YOU")
         if self.behavior_mode == "BYZANTINE_SILENT":
-            self.logger.info(f"[{self.id()}] BYZANTINE SILENT: Dropping message from {src}")
+            self.logger.info(f"[{self._safe_id()}] BYZANTINE SILENT: Dropping message from {src}")
             return
 
         src_id = str(src)
@@ -183,7 +196,7 @@ class Dolev(Algorithm):
         if not msg.path:  # Empty path = direct from source claim
             if src_id != msg.source:
                 self.logger.warning(
-                    f"[{self.id()}] RC-INTEGRITY VIOLATION: "
+                    f"[{self._safe_id()}] RC-INTEGRITY VIOLATION: "
                     f"Received message claiming source={msg.source} "
                     f"but actual sender={src_id}. REJECTING spoofed message."
                 )
@@ -191,7 +204,7 @@ class Dolev(Algorithm):
 
         #MD5 stop all activity for msg, we done
         if msg.msg_id in self.delivered and msg.msg_id in self.forwarded_empty:
-            #self.logger.info(f"[{self.id()}] MD5: already delivered and forwarded empty, ignore {msg_id}") --> debug only
+            #self.logger.info(f"[{self._safe_id()}] MD5: already delivered and forwarded empty, ignore {msg_id}") --> debug only
             return
 
         if msg_id not in self.message_metrics:
@@ -206,15 +219,15 @@ class Dolev(Algorithm):
 
         #ND3: handle empty from non-source
         if not msg.path and src_id != msg.source:
-            self.logger.info(f"[{self.id()}] recv EMPTY from {src_id} for {msg_id}")
+            self.logger.info(f"[{self._safe_id()}] recv EMPTY from {src_id} for {msg_id}")
             self.neighbour_delivered.setdefault(msg_id, set()).add(src_id)
             return
 
         new_path = msg.path + [src_id]
-        self.logger.info(f"[{self.id()}] recv {msg_id} from {src_id} path={msg.path}")
+        self.logger.info(f"[{self._safe_id()}] recv {msg_id} from {src_id} path={msg.path}")
         # MD4
         if src_id in self.neighbour_delivered.get(msg_id, set()) and src_id in msg.path:
-            self.logger.info(f"[{self.id()}] MD4: drop second hop from delivered neighbor {src_id} for {msg_id}")
+            self.logger.info(f"[{self._safe_id()}] MD4: drop second hop from delivered neighbor {src_id} for {msg_id}")
             return
 
         self.paths.setdefault(msg_id, [])
@@ -243,7 +256,7 @@ class Dolev(Algorithm):
         if direct and msg_id not in self.delivered:
             self.delivered.add(msg_id)
             self.message_metrics.setdefault(msg_id, {})["delivery_time"] = time.time()
-            self.logger.info(f"[{self.id()}] DELIVER (MD1 direct) {msg_id} payload='{msg.payload}' source={msg.source}")
+            self.logger.info(f"[{self._safe_id()}] DELIVER (MD1 direct) {msg_id} payload='{msg.payload}' source={msg.source}")
 
             # up to daddy bracha (directly)
             if self._parent:
@@ -254,9 +267,9 @@ class Dolev(Algorithm):
             paths = self.paths.get(msg_id, [])
             if self.distPaths(paths, msg.source):
                 self.delivered.add(msg_id)
-                self.neighbour_delivered.setdefault(msg_id, set()).add(str(self.id()))
+                self.neighbour_delivered.setdefault(msg_id, set()).add(str(self._safe_id()))
                 self.message_metrics[msg_id]["delivery_time"] = time.time()
-                self.logger.info(f"[{self.id()}] DELIVER {msg_id} payload='{msg.payload}' source={msg.source}")
+                self.logger.info(f"[{self._safe_id()}] DELIVER {msg_id} payload='{msg.payload}' source={msg.source}")
                 # up to daddy bracha (standard)
                 if self._parent:
                     await self._parent.dolev_deliver(src=msg.source, msg=msg)
@@ -266,7 +279,7 @@ class Dolev(Algorithm):
 
         # MD2 empty forward
         if msg_id not in self.forwarded_empty:
-            self.neighbour_delivered.setdefault(msg_id, set()).add(str(self.id()))
+            self.neighbour_delivered.setdefault(msg_id, set()).add(str(self._safe_id()))
             empty = DMsg(msg_id, msg.source, msg.payload, [])
 
             for peer in self.peers.values():
@@ -294,18 +307,18 @@ class Dolev(Algorithm):
 
         # Add all edges from paths
         for path in paths:
-            full_path = [source] + path + [str(self.id())]
+            full_path = [source] + path + [str(self._safe_id())]
             for i in range(len(full_path) - 1):
                 G.add_edge(full_path[i], full_path[i+1])
 
         # Check if source and destination are connected
-        if not nx.has_path(G, source, str(self.id())):
+        if not nx.has_path(G, source, str(self._safe_id())):
             return False
 
         # Use Menger's theorem: node_connectivity gives max node-disjoint paths
         try:
-            disjoint_count = nx.node_connectivity(G, source, str(self.id()))
-            self.logger.debug(f"[{self.id()}] Found {disjoint_count} disjoint paths from {source}, need {needed}")
+            disjoint_count = nx.node_connectivity(G, source, str(self._safe_id()))
+            self.logger.debug(f"[{self._safe_id()}] Found {disjoint_count} disjoint paths from {source}, need {needed}")
             return disjoint_count >= needed
         except nx.NetworkXError:
             return False
