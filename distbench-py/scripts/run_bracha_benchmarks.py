@@ -75,6 +75,16 @@ class BenchmarkRunner:
         self.trials = trials
         self.timeout = timeout
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Clean rebuild to ensure latest code is used
+        print("Cleaning and rebuilding environment...")
+        venv_path = Path(".venv")
+        if venv_path.exists():
+            import shutil
+            shutil.rmtree(venv_path)
+            print("  ✓ Removed old .venv")
+        subprocess.run(["uv", "sync"], capture_output=True, check=True)
+        print("  ✓ Environment rebuilt")
 
     def modify_config_for_optimization(self, config_path: Path, opt_config: dict, trial: int) -> Path:
         """Create a modified config file with optimization flags."""
