@@ -45,7 +45,7 @@ class Dolev(Algorithm):
     def _safe_id(self) -> str:
         """Get node ID safely, returning 'unknown' if not set yet."""
         try:
-            return str(self._safe_id())
+            return str(self.id())
         except RuntimeError:
             return "unknown"
 
@@ -123,21 +123,32 @@ class Dolev(Algorithm):
         await asyncio.sleep(random.uniform(0, self.max_delay))
 
     async def yes_daddy_bracha(self, bracha_msg):
-        # im gonna blow my brains out
+        """Broadcast a Bracha message via Dolev protocol.
+        
+        Each Dolev broadcast needs a unique msg_id that identifies both:
+        1. The original Bracha message (bracha_msg.msg_id)
+        2. The node broadcasting this specific Dolev message (sender_id)
+        
+        This is because multiple nodes may broadcast ECHOs/READYs for the same
+        Bracha message, and Dolev tracks paths per msg_id.
+        """
         if not self.neighbour_ids and self.community:
             self.neighbour_ids = {str(pid) for pid in self.community.neighbours}
 
-        msg_id = bracha_msg.msg_id
         try:
-            sender_id = str(self._parent.id()) if self._parent else self.id()
+            sender_id = str(self._parent.id()) if self._parent else str(self.id())
         except RuntimeError:
-            # ID not set yet, use a placeholder
             sender_id = "unknown"
-        dmsg = DMsg(msg_id, sender_id, bracha_msg, [])
-        print("DOING DADDDY BRAAAACHAAA")
+        
+        # Create unique Dolev msg_id: combines Bracha msg_id + phase + sender
+        # This ensures each node's broadcast of ECHO/READY is tracked separately
+        dolev_msg_id = f"{bracha_msg.msg_id}:{bracha_msg.phase}:{sender_id}"
+        
+        dmsg = DMsg(dolev_msg_id, sender_id, bracha_msg, [])
+        self.logger.info(f"[{self._safe_id()}] Dolev broadcast: {bracha_msg.phase} for Bracha msg {bracha_msg.msg_id}")
+        
         for peer in self.peers.values():
             if str(peer.peer_id) in self.neighbour_ids:
-                print("DOING DADDDY BRAAAACHAAA", peer)
                 await self.delay()
                 await peer.dolev(dmsg)
                 self.total_messages_sent += 1
@@ -180,7 +191,6 @@ class Dolev(Algorithm):
     @handler
     async def dolev(self, src: PeerId, msg: DMsg):
         # BYZANTINE_SILENT: Drop all messages
-        print(" FUCK YOU FUCK YOU FUCK YOU FUCK YOU FUCK YOU")
         if self.behavior_mode == "BYZANTINE_SILENT":
             self.logger.info(f"[{self._safe_id()}] BYZANTINE SILENT: Dropping message from {src}")
             return
