@@ -155,7 +155,8 @@ class Dolev(Algorithm):
             if str(peer.peer_id) in self.neighbour_ids:
                 await self.delay()
                 await peer.dolev(dmsg)
-                self.total_messages_sent += 1
+                if self._parent:
+                    self._parent.messages_sent += 1
 
     async def broadcast_message(self):
         msg_id = str(uuid.uuid4())
@@ -185,12 +186,16 @@ class Dolev(Algorithm):
                 if str(peer.peer_id) in target_neighbors:
                     await peer.dolev(msg)
                     self.total_messages_sent += 1
+                    if self._parent:
+                        self._parent.messages_sent += 1
         else:
             # Normal broadcast to all neighbors
             for peer in self.peers.values():
                 if str(peer.peer_id) in self.neighbour_ids:
                     await peer.dolev(msg)
                     self.total_messages_sent += 1
+                    if self._parent:
+                        self._parent.messages_sent += 1
 
     @handler
     async def dolev(self, src: PeerId, msg: DMsg):
@@ -268,6 +273,8 @@ class Dolev(Algorithm):
                 await peer.dolev(DMsg(msg_id, msg.source, msg.payload, new_path))
                 self.messages_forwarded += 1
                 self.total_messages_sent += 1
+                if self._parent:
+                    self._parent.messages_sent += 1
 
         await self.my_deliver(msg)
 
@@ -286,6 +293,9 @@ class Dolev(Algorithm):
             # up to daddy bracha (directly)
             if self._parent:
                 await self._parent.dolev_deliver(src=msg.source, msg=msg)
+                self.total_messages_sent += 1
+                self.messages_forwarded += 1
+                self._parent.messages_sent += 1
 
         # deliver needs if to guard empty forward for one exec
         elif msg_id not in self.delivered:
@@ -313,6 +323,8 @@ class Dolev(Algorithm):
                     await peer.dolev(empty)
                     self.messages_forwarded += 1
                     self.total_messages_sent += 1
+                    if self._parent:
+                        self._parent.messages_sent += 1
 
             self.forwarded_empty.add(msg_id)
 

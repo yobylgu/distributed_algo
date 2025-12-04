@@ -177,7 +177,6 @@ class BrachaOptimized(Algorithm):
 
     async def bracha(self, method: str, msg: BrachaMessage):
         logger.info(f"[{self.id()}] BRACHA {method} {msg}")
-        self.messages_sent += 1
         await self.dolev_alg.yes_daddy_bracha(msg)
 
     @handler

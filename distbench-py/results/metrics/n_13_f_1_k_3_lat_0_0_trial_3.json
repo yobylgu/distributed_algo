@@ -1,9 +1,0 @@
-{
-  "num_nodes": 13,
-  "total_messages_sent": 75,
-  "total_messages_forwarded": 72,
-  "total_delivered": 8,
-  "avg_latency_ms": 432.3435127735138,
-  "min_latency_ms": 0.00095367431640625,
-  "max_latency_ms": 987.6918792724609
-}
