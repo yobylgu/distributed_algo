@@ -116,6 +116,10 @@ class BrachaOptimized(Algorithm):
         eligible = self.calculate_eligible_nodes(sender_id, count)
         return my_id in eligible
 
+    def all_delivered(self) -> bool:
+        # All known messages delivered by this node?
+        return all(self.delivered.values())
+
     async def on_start(self):
         self.start_time = time.time()
 
@@ -170,10 +174,10 @@ class BrachaOptimized(Algorithm):
                 await self.bracha("echo", BrachaMessage("echo", msg.sender, msg_id, msg.payload))
 
         # Fallback timeout - wait for algorithm to complete or timeout
-        await asyncio.sleep(30.0)  # 30 second timeout
-        if not self.is_terminated():
-            logger.warning(f"[{self.id()}] Timeout reached, terminating")
-            await self.terminate()
+        while not self.all_delivered():
+            await asyncio.sleep(0.05)
+
+        await self.terminate()
 
     async def bracha(self, method: str, msg: BrachaMessage):
         logger.info(f"[{self.id()}] BRACHA {method} {msg}")
