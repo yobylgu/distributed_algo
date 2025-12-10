@@ -1,0 +1,240 @@
+
+n0:
+  host: 127.0.0.1
+  port: 10000
+  neighbours: [n20, n21, n22, n23, n24, n25, n26, n27, n28, n29, n1, n2, n3, n4, n5, n6, n7, n8, n9]
+  is_sender: true
+  f: 8
+  behavior_mode: HONEST
+
+n1:
+  host: 127.0.0.1
+  port: 10001
+  neighbours: [n21, n22, n23, n24, n25, n26, n27, n28, n29, n0, n2, n3, n4, n5, n6, n7, n8, n9, n10]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n2:
+  host: 127.0.0.1
+  port: 10002
+  neighbours: [n22, n23, n24, n25, n26, n27, n28, n29, n0, n1, n3, n4, n5, n6, n7, n8, n9, n10, n11]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n3:
+  host: 127.0.0.1
+  port: 10003
+  neighbours: [n23, n24, n25, n26, n27, n28, n29, n0, n1, n2, n4, n5, n6, n7, n8, n9, n10, n11, n12]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n4:
+  host: 127.0.0.1
+  port: 10004
+  neighbours: [n24, n25, n26, n27, n28, n29, n0, n1, n2, n3, n5, n6, n7, n8, n9, n10, n11, n12, n13]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n5:
+  host: 127.0.0.1
+  port: 10005
+  neighbours: [n25, n26, n27, n28, n29, n0, n1, n2, n3, n4, n6, n7, n8, n9, n10, n11, n12, n13, n14]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n6:
+  host: 127.0.0.1
+  port: 10006
+  neighbours: [n26, n27, n28, n29, n0, n1, n2, n3, n4, n5, n7, n8, n9, n10, n11, n12, n13, n14, n15]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n7:
+  host: 127.0.0.1
+  port: 10007
+  neighbours: [n27, n28, n29, n0, n1, n2, n3, n4, n5, n6, n8, n9, n10, n11, n12, n13, n14, n15, n16]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n8:
+  host: 127.0.0.1
+  port: 10008
+  neighbours: [n28, n29, n0, n1, n2, n3, n4, n5, n6, n7, n9, n10, n11, n12, n13, n14, n15, n16, n17]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n9:
+  host: 127.0.0.1
+  port: 10009
+  neighbours: [n29, n0, n1, n2, n3, n4, n5, n6, n7, n8, n10, n11, n12, n13, n14, n15, n16, n17, n18]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n10:
+  host: 127.0.0.1
+  port: 10010
+  neighbours: [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n11, n12, n13, n14, n15, n16, n17, n18, n19]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n11:
+  host: 127.0.0.1
+  port: 10011
+  neighbours: [n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n12, n13, n14, n15, n16, n17, n18, n19, n20]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n12:
+  host: 127.0.0.1
+  port: 10012
+  neighbours: [n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n13, n14, n15, n16, n17, n18, n19, n20, n21]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n13:
+  host: 127.0.0.1
+  port: 10013
+  neighbours: [n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n14, n15, n16, n17, n18, n19, n20, n21, n22]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n14:
+  host: 127.0.0.1
+  port: 10014
+  neighbours: [n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n15, n16, n17, n18, n19, n20, n21, n22, n23]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n15:
+  host: 127.0.0.1
+  port: 10015
+  neighbours: [n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n16, n17, n18, n19, n20, n21, n22, n23, n24]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n16:
+  host: 127.0.0.1
+  port: 10016
+  neighbours: [n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n17, n18, n19, n20, n21, n22, n23, n24, n25]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n17:
+  host: 127.0.0.1
+  port: 10017
+  neighbours: [n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n18, n19, n20, n21, n22, n23, n24, n25, n26]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n18:
+  host: 127.0.0.1
+  port: 10018
+  neighbours: [n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n19, n20, n21, n22, n23, n24, n25, n26, n27]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n19:
+  host: 127.0.0.1
+  port: 10019
+  neighbours: [n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n20, n21, n22, n23, n24, n25, n26, n27, n28]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n20:
+  host: 127.0.0.1
+  port: 10020
+  neighbours: [n10, n11, n12, n13, n14, n15, n16, n17, n18, n19, n21, n22, n23, n24, n25, n26, n27, n28, n29]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n21:
+  host: 127.0.0.1
+  port: 10021
+  neighbours: [n11, n12, n13, n14, n15, n16, n17, n18, n19, n20, n22, n23, n24, n25, n26, n27, n28, n29, n0]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n22:
+  host: 127.0.0.1
+  port: 10022
+  neighbours: [n12, n13, n14, n15, n16, n17, n18, n19, n20, n21, n23, n24, n25, n26, n27, n28, n29, n0, n1]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n23:
+  host: 127.0.0.1
+  port: 10023
+  neighbours: [n13, n14, n15, n16, n17, n18, n19, n20, n21, n22, n24, n25, n26, n27, n28, n29, n0, n1, n2]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n24:
+  host: 127.0.0.1
+  port: 10024
+  neighbours: [n14, n15, n16, n17, n18, n19, n20, n21, n22, n23, n25, n26, n27, n28, n29, n0, n1, n2, n3]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n25:
+  host: 127.0.0.1
+  port: 10025
+  neighbours: [n15, n16, n17, n18, n19, n20, n21, n22, n23, n24, n26, n27, n28, n29, n0, n1, n2, n3, n4]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n26:
+  host: 127.0.0.1
+  port: 10026
+  neighbours: [n16, n17, n18, n19, n20, n21, n22, n23, n24, n25, n27, n28, n29, n0, n1, n2, n3, n4, n5]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n27:
+  host: 127.0.0.1
+  port: 10027
+  neighbours: [n17, n18, n19, n20, n21, n22, n23, n24, n25, n26, n28, n29, n0, n1, n2, n3, n4, n5, n6]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n28:
+  host: 127.0.0.1
+  port: 10028
+  neighbours: [n18, n19, n20, n21, n22, n23, n24, n25, n26, n27, n29, n0, n1, n2, n3, n4, n5, n6, n7]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST
+
+n29:
+  host: 127.0.0.1
+  port: 10029
+  neighbours: [n19, n20, n21, n22, n23, n24, n25, n26, n27, n28, n0, n1, n2, n3, n4, n5, n6, n7, n8]
+  is_sender: false
+  f: 8
+  behavior_mode: HONEST

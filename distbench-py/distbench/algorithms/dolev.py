@@ -44,7 +44,10 @@ class Dolev(Algorithm):
 
     def _safe_id(self) -> str:
         """Get node ID safely, returning 'unknown' if not set yet."""
+        """tries to get parent id if parent exist, preserves logging ownerhip"""
         try:
+            if self._parent:
+                return str(self._parent.id())
             return str(self.id())
         except RuntimeError:
             return "unknown"
@@ -122,6 +125,31 @@ class Dolev(Algorithm):
     async def delay(self):
         await asyncio.sleep(random.uniform(0, self.max_delay))
 
+    def _ensure_logger(self):
+        # If parent says split logs
+        if getattr(self._parent, "split_logs", False):
+            if not self.logger or not self.logger.handlers:
+                self.logger = logging.getLogger(f"dolev-{self._safe_id()}")
+                self.logger.setLevel(logging.INFO)
+                self.logger.propagate = False
+
+                self.logger = logging.getLogger(f"dolev-{self._safe_id()}")
+                self.logger.setLevel(logging.INFO)
+                self.logger.propagate = False
+                self.logger.handlers.clear()
+
+                fh = logging.FileHandler(f"dolev-{self._safe_id()}.txt", mode="w")
+                fh.setLevel(logging.INFO)
+                formatter = logging.Formatter("%(asctime)s [%(name)s] %(message)s")
+                fh.setFormatter(formatter)
+
+                self.logger.addHandler(fh)
+
+
+        else:
+            # Use parent's logger (unified log)
+            self.logger = self._parent.logger if self._parent else self.logger
+
     async def yes_daddy_bracha(self, bracha_msg):
         """Broadcast a Bracha message via Dolev protocol.
         
@@ -132,6 +160,9 @@ class Dolev(Algorithm):
         This is because multiple nodes may broadcast ECHOs/READYs for the same
         Bracha message, and Dolev tracks paths per msg_id.
         """
+        #parent logger setup on entry
+        self._ensure_logger()
+
         # Get neighbors from parent's community when used as child algorithm
         if not self.neighbour_ids:
             if self._parent and self._parent.community:
@@ -199,6 +230,9 @@ class Dolev(Algorithm):
 
     @handler
     async def dolev(self, src: PeerId, msg: DMsg):
+        #parent logger setup in case of receive from other children
+        self._ensure_logger()
+
         # BYZANTINE_SILENT: Drop all messages
         if self.behavior_mode == "BYZANTINE_SILENT":
             self.logger.info(f"[{self._safe_id()}] BYZANTINE SILENT: Dropping message from {src}")

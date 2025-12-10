@@ -34,6 +34,7 @@ class BrachaOptimized(Algorithm):
 
     def __init__(self, config: dict, peers: dict):
         super().__init__()
+        self.split_logs = False
         self.peers = peers
         self.N = len(peers) + 1
         self.seen_messages = set()
@@ -51,8 +52,10 @@ class BrachaOptimized(Algorithm):
         self.delivery_times: dict[str, float] = {}  # msg_id -> delivery timestamp
         self.messages_sent: int = 0
         self.messages_received: int = 0
-        self.expected_senders: set[str] = set()  # Track unique senders for dynamic completion
+        # system needs to know this in advance
+        self.expected_senders = set()
 
+        self.logger = logging.getLogger("PLACEHOLDER")
         # Validate dependencies
         if self.enable_single_hop_send and not self.enable_echo_amplification:
             raise ValueError(
@@ -83,7 +86,7 @@ class BrachaOptimized(Algorithm):
         try:
             sender_idx = all_ids.index(sender_id)
         except ValueError:
-            logger.warning(f"[{my_id}] Sender {sender_id} not found in node list")
+            self.logger.warning(f"[{my_id}] Sender {sender_id} not found in node list")
             return set()
 
         eligible = set()
@@ -121,6 +124,19 @@ class BrachaOptimized(Algorithm):
         return all(self.delivered.values())
 
     async def on_start(self):
+        self.logger = logging.getLogger(f"bracha-{self.id()}")
+        self.logger.setLevel(logging.INFO)
+        self.logger.propagate = False
+
+        self.logger.info(f"[{self.id()}] Logging mode: {'SPLIT' if self.split_logs else 'UNIFIED'}")
+
+        if not self.logger.handlers:
+            fh = logging.FileHandler(f"{self.id()}.txt", mode="w")
+            fh.setLevel(logging.INFO)
+            formatter = logging.Formatter("%(asctime)s [%(name)s] %(levelname)s : %(message)s")
+            fh.setFormatter(formatter)
+            self.logger.addHandler(fh)
+
         self.start_time = time.time()
 
         # Manually initialize Dolev child's neighbour_ids to avoid community access issues
@@ -128,12 +144,12 @@ class BrachaOptimized(Algorithm):
         if hasattr(self.dolev_alg, 'neighbour_ids') and self.community:
             self.dolev_alg.neighbour_ids = {str(pid) for pid in self.community.neighbours}
 
-        logger.info(
+        self.logger.info(
             f"[{self.id()}] Bracha Optimized starting "
             f"(N={self.N}, f={self.f}, "
             f"thresholds: echo={self.ready_threshold}, ready={self.deliver_threshold})"
         )
-        logger.info(
+        self.logger.info(
             f"[{self.id()}] Optimizations - "
             f"Echo Amp: {self.enable_echo_amplification}, "
             f"Single-hop: {self.enable_single_hop_send}, "
@@ -142,7 +158,7 @@ class BrachaOptimized(Algorithm):
 
         if self.is_sender:
             msg_id = str(uuid.uuid4())
-            logger.info(f"[{self.id()}] SENDER broadcasting SEND: {msg_id}")
+            self.logger.info(f"[{self.id()}] SENDER broadcasting SEND: {msg_id}")
             self.init_state(msg_id)
             self.expected_senders.add(str(self.id()))  # Track self as sender
 
@@ -150,7 +166,7 @@ class BrachaOptimized(Algorithm):
 
             if self.enable_single_hop_send:
                 # MBD.2: Send SEND only to direct neighbors
-                logger.info(f"[{self.id()}] Single-hop Send: Sending SEND to neighbors only")
+                self.logger.info(f"[{self.id()}] Single-hop Send: Sending SEND to neighbors only")
                 neighbour_ids = {str(pid) for pid in self.community.neighbours}
 
                 # Delay to ensure all peer nodes have completed initialization
@@ -173,14 +189,12 @@ class BrachaOptimized(Algorithm):
                 self.echos[msg_id].add(str(self.id()))  # Count own ECHO
                 await self.bracha("echo", BrachaMessage("echo", msg.sender, msg_id, msg.payload))
 
-        # Fallback timeout - wait for algorithm to complete or timeout
-        while not self.all_delivered():
-            await asyncio.sleep(0.05)
+            # Fallback timeout - wait for algorithm to complete or timeout
 
-        await self.terminate()
-
+    def on_exit(self):
+        return self.report()
     async def bracha(self, method: str, msg: BrachaMessage):
-        logger.info(f"[{self.id()}] BRACHA {method} {msg}")
+        self.logger.info(f"[{self.id()}] BRACHA {method} {msg}")
         await self.dolev_alg.yes_daddy_bracha(msg)
 
     @handler
@@ -205,10 +219,8 @@ class BrachaOptimized(Algorithm):
             b_msg = BrachaMessage(**payload)
         else:
             b_msg = payload
-
+        self.expected_senders.add(str(b_msg.sender))
         if b_msg.phase == "send":
-            # Track sender for dynamic completion detection
-            self.expected_senders.add(str(b_msg.sender))
             await self.send(src, b_msg)
         elif b_msg.phase == "echo":
             await self.echo(src, b_msg)
@@ -218,24 +230,31 @@ class BrachaOptimized(Algorithm):
     @handler
     async def send(self, src: PeerId, msg: BrachaMessage):
         msg_id = msg.msg_id
-        logger.info(f"[{self.id()}] RECV SEND from {src} msg_id={msg_id}")
+        self.logger.info(f"[{self.id()}] RECV SEND from {src} msg_id={msg_id}")
         self.init_state(msg_id)
-
+        self.expected_senders.add(str(msg.sender))
         if msg_id not in self.seen_messages:
             self.seen_messages.add(msg_id)
+            # dont care about eligibility, single hop HAS to echo
+            if self.enable_single_hop_send:
+                if not self.sent_echo[msg_id]:
+                    self.sent_echo[msg_id] = True
+                    self.echos[msg_id].add(str(self.id()))
+                    self.logger.info(f"[{self.id()}] Single-hop: Forcing ECHO after SEND")
+                    await self.bracha("echo", BrachaMessage("echo", msg.sender, msg_id, msg.payload))
 
             # Check if eligible to generate ECHO (MBD.11 optimization)
-            if not self.enable_reduced_messages or self.should_generate_echo(msg.sender):
+            elif not self.enable_reduced_messages or self.should_generate_echo(msg.sender):
                 self.sent_echo[msg_id] = True
                 self.echos[msg_id].add(str(self.id()))  # Count own ECHO
                 await self.bracha("echo", BrachaMessage("echo", msg.sender, msg_id, msg.payload))
             else:
-                logger.info(f"[{self.id()}] Reduced Messages: Not eligible to generate ECHO")
+               self.logger.info(f"[{self.id()}] Reduced Messages: Not eligible to generate ECHO")
 
     @handler
     async def echo(self, src: PeerId, msg: BrachaMessage):
         msg_id = msg.msg_id
-        logger.info(f"[{self.id()}] RECV ECHO from {src} msg_id={msg_id}")
+        self.logger.info(f"[{self.id()}] RECV ECHO from {src} msg_id={msg_id}")
         self.init_state(msg_id)
         self.echos[msg_id].add(str(src))
 
@@ -245,12 +264,12 @@ class BrachaOptimized(Algorithm):
             if not self.sent_echo[msg_id] and len(self.echos[msg_id]) >= self.f + 1:
                 # Check if eligible to generate ECHO (MBD.11 compatibility)
                 if self.should_generate_echo(msg.sender):
-                    logger.info(f"[{self.id()}] Echo Amplification: Sending ECHO at f+1={self.f+1} threshold")
+                    self.logger.info(f"[{self.id()}] Echo Amplification: Sending ECHO at f+1={self.f+1} threshold")
                     self.sent_echo[msg_id] = True
                     self.echos[msg_id].add(str(self.id()))  # Count own ECHO
                     await self.bracha("echo", BrachaMessage("echo", msg.sender, msg_id, msg.payload))
                 else:
-                    logger.debug(f"[{self.id()}] Echo Amplification: Not eligible (MBD.11)")
+                   self.logger.debug(f"[{self.id()}] Echo Amplification: Not eligible (MBD.11)")
 
         # Standard READY trigger: ⌈(N+f+1)/2⌉ ECHOs
         if not self.sent_ready[msg_id] and len(self.echos[msg_id]) >= self.ready_threshold:
@@ -259,12 +278,12 @@ class BrachaOptimized(Algorithm):
                 self.sent_ready[msg_id] = True
                 await self.bracha("ready", BrachaMessage("ready", msg.sender, msg_id, msg.payload))
             else:
-                logger.info(f"[{self.id()}] Reduced Messages: Not eligible to generate READY")
+               self.logger.info(f"[{self.id()}] Reduced Messages: Not eligible to generate READY")
 
     @handler
     async def ready(self, src: PeerId, msg: BrachaMessage):
         msg_id = msg.msg_id
-        logger.info(f"[{self.id()}] RECV READY from {src} msg_id={msg_id}")
+        self.logger.info(f"[{self.id()}] RECV READY from {src} msg_id={msg_id}")
         self.init_state(msg_id)
         self.readys[msg_id].add(str(src))
 
@@ -286,12 +305,12 @@ class BrachaOptimized(Algorithm):
             if not will_send_ready_now:
                 # Check if eligible to generate ECHO (MBD.11 compatibility)
                 if self.should_generate_echo(msg.sender):
-                    logger.info(f"[{self.id()}] Echo Amplification: Generating ECHO from READY")
+                    self.logger.info(f"[{self.id()}] Echo Amplification: Generating ECHO from READY")
                     await self.bracha("echo", BrachaMessage("echo", msg.sender, msg_id, msg.payload))
                 else:
-                    logger.debug(f"[{self.id()}] Echo Amplification: Not eligible (MBD.11)")
+                   self.logger.debug(f"[{self.id()}] Echo Amplification: Not eligible (MBD.11)")
             else:
-                logger.debug(f"[{self.id()}] Silent Echo: Suppressing ECHO because READY is being sent")
+               self.logger.debug(f"[{self.id()}] Silent Echo: Suppressing ECHO because READY is being sent")
 
         # Early READY trigger: f+1 READYs (amplification)
         if will_send_ready_now:
@@ -302,7 +321,7 @@ class BrachaOptimized(Algorithm):
         if not self.delivered[msg_id] and len(self.readys[msg_id]) >= self.deliver_threshold:
             self.delivered[msg_id] = True
             self.delivery_times[msg_id] = time.time()
-            logger.info(f"[{self.id()}] >>> BRACHA DELIVERED: {msg.payload} <<<")
+            self.logger.info(f"[{self.id()}] >>> BRACHA DELIVERED: {msg.payload} <<<")
             await self.check_completion()
 
     async def check_completion(self):
@@ -311,15 +330,15 @@ class BrachaOptimized(Algorithm):
         expected_count = len(self.expected_senders)
         delivered_count = sum(1 for d in self.delivered.values() if d)
 
-        logger.debug(f"[{self.id()}] Completion check: delivered {delivered_count}/{expected_count}")
+        self.logger.debug(f"[{self.id()}] Completion check: delivered {delivered_count}/{expected_count}")
 
         # If we've delivered all messages from known senders, we're done
         if expected_count > 0 and delivered_count >= expected_count:
-            logger.info(f"[{self.id()}] All {delivered_count} messages delivered, terminating")
+            self.logger.info(f"[{self.id()}] All {delivered_count} messages delivered, terminating")
             await self.terminate()
 
     async def report(self) -> dict[str, str]:
-        """Return algorithm metrics."""
+        """Return algorithm metrics and write them to the nodeself.logger."""
         delivered_count = sum(1 for d in self.delivered.values() if d)
 
         # Calculate latencies
@@ -332,7 +351,7 @@ class BrachaOptimized(Algorithm):
         min_latency = min(latencies) if latencies else 0.0
         max_latency = max(latencies) if latencies else 0.0
 
-        return {
+        report = {
             "node_id": str(self.id()),
             "is_sender": str(self.is_sender),
             "N": str(self.N),
@@ -345,8 +364,9 @@ class BrachaOptimized(Algorithm):
             "max_latency_ms": f"{max_latency:.2f}",
             "echo_threshold": str(self.ready_threshold),
             "ready_threshold": str(self.deliver_threshold),
-            # Add optimization status to metrics
-            "echo_amplification": str(self.enable_echo_amplification),
-            "single_hop_send": str(self.enable_single_hop_send),
-            "reduced_messages": str(self.enable_reduced_messages),
         }
+        try:
+            self.logger.info(f"BRACHA_METRICS_JSON: {report}")
+        except Exception:
+            pass
+        return report

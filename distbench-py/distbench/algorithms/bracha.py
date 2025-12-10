@@ -29,6 +29,7 @@ class Bracha(Algorithm):
 
     def __init__(self, config: dict, peers: dict):
         super().__init__()
+        self.split_logs = True
         self.peers = peers
         self.N = len(peers) + 1
         self.seen_messages = set()
@@ -57,9 +58,27 @@ class Bracha(Algorithm):
             self.sent_ready[msg_id] = False
             self.delivered[msg_id] = False
 
+    def all_delivered(self) -> bool:
+        # All known messages delivered by this node?
+        return all(self.delivered.values())
+
     async def on_start(self):
+        self.logger = logging.getLogger(f"bracha-{self.id()}")
+        self.logger.setLevel(logging.INFO)
+        self.logger.propagate = False
+
+        self.logger.info(f"[{self.id()}] Logging mode: {'SPLIT' if self.split_logs else 'UNIFIED'}")
+
+        if not self.logger.handlers:
+            fh = logging.FileHandler(f"{self.id()}.txt", mode="w")
+            fh.setLevel(logging.INFO)
+            formatter = logging.Formatter("%(asctime)s [%(name)s] %(levelname)s : %(message)s")
+            fh.setFormatter(formatter)
+            self.logger.addHandler(fh)
+
+
         self.start_time = time.time()
-        logger.info(f"[{self.id()}] Bracha starting (N={self.N}, f={self.f}, thresholds: echo={self.ready_threshold}, ready={self.deliver_threshold})")
+        self.logger.info(f"[{self.id()}] Bracha starting (N={self.N}, f={self.f}, thresholds: echo={self.ready_threshold}, ready={self.deliver_threshold})")
 
         # Initialize Dolev child's neighbour_ids from parent's community
         if hasattr(self.dolev_alg, 'neighbour_ids') and self.community:
@@ -67,7 +86,7 @@ class Bracha(Algorithm):
 
         if self.is_sender:
             msg_id = str(uuid.uuid4())
-            logger.info(f"[{self.id()}] SENDER broadcasting SEND: {msg_id}")
+            self.logger.info(f"[{self.id()}] SENDER broadcasting SEND: {msg_id}")
             self.init_state(msg_id)
             self.expected_senders.add(str(self.id()))  # Track self as sender
 
@@ -79,14 +98,14 @@ class Bracha(Algorithm):
             self.echos[msg_id].add(str(self.id()))  # Count own ECHO
             await self.bracha("echo", BrachaMessage("echo", msg.sender, msg_id, msg.payload))
 
-        # Fallback timeout - wait for algorithm to complete or timeout
-        await asyncio.sleep(30.0)  # 30 second timeout
-        if not self.is_terminated():
-            logger.warning(f"[{self.id()}] Timeout reached, terminating")
+            # Fallback timeout - wait for algorithm to complete or timeout
+            #while not self.all_delivered():
+                #await asyncio.sleep(0.05)
+            self.logger.info(f"[{self.id()}] completed all deliveries, bye bye!")
             await self.terminate()
 
     async def bracha(self, method: str, msg: BrachaMessage):
-        logger.info(f"[{self.id()}] BRACHA {method} {msg}")
+        self.logger.info(f"[{self.id()}] BRACHA {method} {msg}")
         await self.dolev_alg.yes_daddy_bracha(msg)
 
     @handler
@@ -105,7 +124,6 @@ class Bracha(Algorithm):
     @handler(from_child="dolev_alg")
     async def dolev_deliver(self, src: PeerId, msg: DMsg):
         self.messages_received += 1
-        # msg.payload is a dict when deserialized - convert to BrachaMessage
         payload = msg.payload
         if isinstance(payload, dict):
             b_msg = BrachaMessage(**payload)
@@ -122,10 +140,9 @@ class Bracha(Algorithm):
             await self.ready(src, b_msg)
 
     #basically the same, but different so i dont if statement my way through it
-    @handler
     async def send(self, src: PeerId, msg: BrachaMessage):
         msg_id = msg.msg_id
-        logger.info(f"[{self.id()}] RECV SEND from {src} msg_id={msg_id}")
+        self.logger.info(f"[{self.id()}] RECV SEND from {src} msg_id={msg_id} | payload={msg.phase}")
         self.init_state(msg_id)
 
         if msg_id not in self.seen_messages:
@@ -134,10 +151,9 @@ class Bracha(Algorithm):
             self.echos[msg_id].add(str(self.id()))  # Count own ECHO
             await self.bracha("echo", BrachaMessage("echo", msg.sender, msg_id, msg.payload))
 
-    @handler
     async def echo(self, src: PeerId, msg: BrachaMessage):
         msg_id = msg.msg_id
-        logger.info(f"[{self.id()}] RECV ECHO from {src} msg_id={msg_id}")
+        self.logger.info(f"[{self.id()}] RECV ECHO from {src} msg_id={msg_id}")
         self.init_state(msg_id)
         self.echos[msg_id].add(str(src))
 
@@ -145,14 +161,13 @@ class Bracha(Algorithm):
             self.sent_ready[msg_id] = True
             await self.bracha("ready", BrachaMessage("ready", msg.sender, msg_id, msg.payload))
 
-    @handler
     async def ready(self, src: PeerId, msg: BrachaMessage):
         msg_id = msg.msg_id
-        logger.info(f"[{self.id()}] RECV READY from {src} msg_id={msg_id}")
+        self.logger.info(f"[{self.id()}] RECV READY from {src} msg_id={msg_id}")
         self.init_state(msg_id)
         self.readys[msg_id].add(str(src))
 
-        if not self.sent_ready[msg_id] and len(self.readys[msg_id]) >= self.f + 1:
+        if not self.sent_ready[msg_id] and len(self.readys [msg_id]) >= self.f + 1:
 
             self.sent_ready[msg_id] = True
             await self.bracha("ready", msg)
@@ -160,7 +175,7 @@ class Bracha(Algorithm):
         if not self.delivered[msg_id] and len(self.readys[msg_id]) >= self.deliver_threshold:
             self.delivered[msg_id] = True
             self.delivery_times[msg_id] = time.time()
-            logger.info(f"[{self.id()}] >>> BRACHA DELIVERED: {msg.payload} <<<")
+            self.logger.info(f"[{self.id()}] >>> BRACHA DELIVERED: {msg.payload} <<<")
             await self.check_completion()
 
     async def check_completion(self):
@@ -169,15 +184,15 @@ class Bracha(Algorithm):
         expected_count = len(self.expected_senders)
         delivered_count = sum(1 for d in self.delivered.values() if d)
 
-        logger.debug(f"[{self.id()}] Completion check: delivered {delivered_count}/{expected_count}")
+        self.logger.debug(f"[{self.id()}] Completion check: delivered {delivered_count}/{expected_count}")
 
         # If we've delivered all messages from known senders, we're done
         if expected_count > 0 and delivered_count >= expected_count:
-            logger.info(f"[{self.id()}] All {delivered_count} messages delivered, terminating")
+            self.logger.info(f"[{self.id()}] All {delivered_count} messages delivered, terminating")
             await self.terminate()
 
     async def report(self) -> dict[str, str]:
-        """Return algorithm metrics."""
+        """Return algorithm metrics and write them to the node logger."""
         delivered_count = sum(1 for d in self.delivered.values() if d)
 
         # Calculate latencies
@@ -190,7 +205,7 @@ class Bracha(Algorithm):
         min_latency = min(latencies) if latencies else 0.0
         max_latency = max(latencies) if latencies else 0.0
 
-        return {
+        report = {
             "node_id": str(self.id()),
             "is_sender": str(self.is_sender),
             "N": str(self.N),
@@ -204,3 +219,8 @@ class Bracha(Algorithm):
             "echo_threshold": str(self.ready_threshold),
             "ready_threshold": str(self.deliver_threshold),
         }
+        try:
+            self.logger.info(f"BRACHA_METRICS_JSON: {report}")
+        except Exception:
+            pass
+        return report
