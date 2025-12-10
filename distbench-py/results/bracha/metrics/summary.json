@@ -4,17 +4,17 @@
     "optimization": "baseline",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 10455.336666666666,
-      "min": 10143.143333333333,
-      "max": 10829.18222222222
+      "mean": 10400.122666666666,
+      "min": 9998.327777777777,
+      "max": 10895.962222222222
     },
     "total_messages_sent": {
-      "mean": 1605.0,
-      "min": 1551,
-      "max": 1723
+      "mean": 1646.4,
+      "min": 1566,
+      "max": 1756
     },
     "total_messages_received": {
-      "mean": 130.6
+      "mean": 132.2
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -25,17 +25,17 @@
     "optimization": "echo_amp",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 11259.0522,
-      "min": 10951.997,
-      "max": 11832.875
+      "mean": 10713.256599999999,
+      "min": 10396.342,
+      "max": 11018.829
     },
     "total_messages_sent": {
-      "mean": 1885.2,
-      "min": 1806,
-      "max": 1957
+      "mean": 1820.8,
+      "min": 1791,
+      "max": 1850
     },
     "total_messages_received": {
-      "mean": 139.8
+      "mean": 140.0
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -46,14 +46,14 @@
     "optimization": "echo_amp_single_hop",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 10471.7594,
-      "min": 10082.723,
-      "max": 10818.265000000001
+      "mean": 10451.533000000001,
+      "min": 9876.435000000001,
+      "max": 10771.451
     },
     "total_messages_sent": {
-      "mean": 1659.8,
-      "min": 1588,
-      "max": 1721
+      "mean": 1659.4,
+      "min": 1577,
+      "max": 1694
     },
     "total_messages_received": {
       "mean": 131.0
@@ -67,17 +67,17 @@
     "optimization": "reduced_messages",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 11618.5684,
-      "min": 11249.493999999999,
-      "max": 12101.371
+      "mean": 11204.7062,
+      "min": 10243.549,
+      "max": 11863.346000000001
     },
     "total_messages_sent": {
-      "mean": 1678.2,
-      "min": 1631,
-      "max": 1719
+      "mean": 1648.6,
+      "min": 1544,
+      "max": 1726
     },
     "total_messages_received": {
-      "mean": 132.4
+      "mean": 131.8
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -88,14 +88,14 @@
     "optimization": "full_optimized",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 10518.5464,
-      "min": 10384.258,
-      "max": 10733.798999999999
+      "mean": 10555.556199999999,
+      "min": 9809.158,
+      "max": 10799.624
     },
     "total_messages_sent": {
-      "mean": 1680.2,
-      "min": 1626,
-      "max": 1766
+      "mean": 1715.2,
+      "min": 1597,
+      "max": 1778
     },
     "total_messages_received": {
       "mean": 131.0
@@ -109,17 +109,17 @@
     "optimization": "baseline",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 15215.700666666668,
-      "min": 14699.552500000003,
-      "max": 15507.389166666668
+      "mean": 15666.192333333334,
+      "min": 14916.073333333334,
+      "max": 16323.203333333333
     },
     "total_messages_sent": {
-      "mean": 4504.6,
-      "min": 4277,
-      "max": 4595
+      "mean": 4559.0,
+      "min": 4230,
+      "max": 4962
     },
     "total_messages_received": {
-      "mean": 233.2
+      "mean": 231.8
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -130,14 +130,14 @@
     "optimization": "echo_amp",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 15282.650153846156,
-      "min": 14973.860769230769,
-      "max": 15710.189230769232
+      "mean": 14759.293538461538,
+      "min": 14351.79923076923,
+      "max": 15331.305384615385
     },
     "total_messages_sent": {
-      "mean": 4583.6,
-      "min": 4410,
-      "max": 4718
+      "mean": 4580.0,
+      "min": 4470,
+      "max": 4675
     },
     "total_messages_received": {
       "mean": 246.8
@@ -151,17 +151,17 @@
     "optimization": "echo_amp_single_hop",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 14424.200615384616,
-      "min": 14171.390769230768,
-      "max": 15105.803076923077
+      "mean": 14036.945999999996,
+      "min": 13676.183076923075,
+      "max": 14316.204615384619
     },
     "total_messages_sent": {
-      "mean": 4273.4,
-      "min": 4205,
-      "max": 4460
+      "mean": 4168.4,
+      "min": 4097,
+      "max": 4244
     },
     "total_messages_received": {
-      "mean": 235.0
+      "mean": 234.8
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -172,17 +172,17 @@
     "optimization": "reduced_messages",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 16592.898615384613,
-      "min": 15735.043846153849,
-      "max": 17117.820000000003
+      "mean": 16833.833384615384,
+      "min": 16447.867692307693,
+      "max": 17452.96153846154
     },
     "total_messages_sent": {
-      "mean": 4417.2,
-      "min": 4287,
-      "max": 4661
+      "mean": 4525.2,
+      "min": 4429,
+      "max": 4668
     },
     "total_messages_received": {
-      "mean": 235.4
+      "mean": 235.2
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -193,17 +193,17 @@
     "optimization": "full_optimized",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 14173.853230769231,
-      "min": 13806.007692307692,
-      "max": 14479.91153846154
+      "mean": 14188.33046153846,
+      "min": 13365.906923076924,
+      "max": 14844.390000000003
     },
     "total_messages_sent": {
-      "mean": 4295.4,
-      "min": 4171,
-      "max": 4469
+      "mean": 4228.2,
+      "min": 3975,
+      "max": 4380
     },
     "total_messages_received": {
-      "mean": 234.2
+      "mean": 235.0
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -214,17 +214,17 @@
     "optimization": "baseline",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 16152.686266666668,
-      "min": 15152.088,
-      "max": 17868.256
+      "mean": 16789.87906666667,
+      "min": 16571.295999999995,
+      "max": 16969.667999999998
     },
     "total_messages_sent": {
-      "mean": 8341.4,
-      "min": 7830,
-      "max": 9210
+      "mean": 8582.4,
+      "min": 8323,
+      "max": 8961
     },
     "total_messages_received": {
-      "mean": 371.6
+      "mean": 376.2
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -235,14 +235,14 @@
     "optimization": "echo_amp",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 15711.253625000001,
-      "min": 15310.595625,
-      "max": 16494.196874999998
+      "mean": 15750.777750000003,
+      "min": 14216.630625,
+      "max": 17305.840625000004
     },
     "total_messages_sent": {
-      "mean": 8569.4,
-      "min": 8139,
-      "max": 8909
+      "mean": 8713.0,
+      "min": 7979,
+      "max": 9381
     },
     "total_messages_received": {
       "mean": 406.2
@@ -256,17 +256,17 @@
     "optimization": "echo_amp_single_hop",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 13182.0405,
-      "min": 12247.810625,
-      "max": 15592.883749999999
+      "mean": 14459.095250000002,
+      "min": 13065.596875000001,
+      "max": 15070.500624999999
     },
     "total_messages_sent": {
-      "mean": 7267.2,
-      "min": 6730,
-      "max": 8833
+      "mean": 8220.2,
+      "min": 7343,
+      "max": 8754
     },
     "total_messages_received": {
-      "mean": 376.6
+      "mean": 392.0
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -277,17 +277,17 @@
     "optimization": "reduced_messages",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 16399.196375,
-      "min": 15636.758749999999,
-      "max": 16936.510000000002
+      "mean": 16347.136375000002,
+      "min": 15229.386250000001,
+      "max": 16903.266875
     },
     "total_messages_sent": {
-      "mean": 8460.6,
-      "min": 7988,
-      "max": 8812
+      "mean": 8634.8,
+      "min": 7957,
+      "max": 9427
     },
     "total_messages_received": {
-      "mean": 383.2
+      "mean": 383.4
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -298,17 +298,227 @@
     "optimization": "full_optimized",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 12608.537750000001,
-      "min": 12220.733125000002,
-      "max": 13383.916875000003
+      "mean": 14160.828875000001,
+      "min": 12392.2725,
+      "max": 15609.836875
     },
     "total_messages_sent": {
-      "mean": 6849.6,
-      "min": 6409,
-      "max": 7562
+      "mean": 7944.8,
+      "min": 6556,
+      "max": 8892
     },
     "total_messages_received": {
-      "mean": 369.8
+      "mean": 387.4
+    },
+    "nodes_delivered": {
+      "mean": 0.0
+    }
+  },
+  {
+    "config_file": "n20_f6_d14.yaml",
+    "optimization": "baseline",
+    "num_trials": 5,
+    "avg_latency_ms": {
+      "mean": 31171.30336842105,
+      "min": 30280.697894736844,
+      "max": 31830.22526315789
+    },
+    "total_messages_sent": {
+      "mean": 22005.0,
+      "min": 21619,
+      "max": 22352
+    },
+    "total_messages_received": {
+      "mean": 605.2
+    },
+    "nodes_delivered": {
+      "mean": 0.0
+    }
+  },
+  {
+    "config_file": "n20_f6_d14.yaml",
+    "optimization": "echo_amp",
+    "num_trials": 5,
+    "avg_latency_ms": {
+      "mean": 28006.844299999997,
+      "min": 26751.334499999997,
+      "max": 29285.1065
+    },
+    "total_messages_sent": {
+      "mean": 21963.0,
+      "min": 21253,
+      "max": 22620
+    },
+    "total_messages_received": {
+      "mean": 646.6
+    },
+    "nodes_delivered": {
+      "mean": 0.0
+    }
+  },
+  {
+    "config_file": "n20_f6_d14.yaml",
+    "optimization": "echo_amp_single_hop",
+    "num_trials": 5,
+    "avg_latency_ms": {
+      "mean": 25862.064000000002,
+      "min": 25282.5115,
+      "max": 26515.606
+    },
+    "total_messages_sent": {
+      "mean": 20774.6,
+      "min": 20429,
+      "max": 21120
+    },
+    "total_messages_received": {
+      "mean": 639.8
+    },
+    "nodes_delivered": {
+      "mean": 0.0
+    }
+  },
+  {
+    "config_file": "n20_f6_d14.yaml",
+    "optimization": "reduced_messages",
+    "num_trials": 5,
+    "avg_latency_ms": {
+      "mean": 31479.6278,
+      "min": 30415.119,
+      "max": 33068.6185
+    },
+    "total_messages_sent": {
+      "mean": 22786.4,
+      "min": 21960,
+      "max": 23881
+    },
+    "total_messages_received": {
+      "mean": 623.0
+    },
+    "nodes_delivered": {
+      "mean": 0.0
+    }
+  },
+  {
+    "config_file": "n20_f6_d14.yaml",
+    "optimization": "full_optimized",
+    "num_trials": 5,
+    "avg_latency_ms": {
+      "mean": 25810.736200000003,
+      "min": 25285.564499999997,
+      "max": 26175.1475
+    },
+    "total_messages_sent": {
+      "mean": 20853.2,
+      "min": 20338,
+      "max": 21184
+    },
+    "total_messages_received": {
+      "mean": 639.4
+    },
+    "nodes_delivered": {
+      "mean": 0.0
+    }
+  },
+  {
+    "config_file": "n30_f8_d20.yaml",
+    "optimization": "baseline",
+    "num_trials": 5,
+    "avg_latency_ms": {
+      "mean": 46753.08089655172,
+      "min": 45720.42896551723,
+      "max": 47822.84517241378
+    },
+    "total_messages_sent": {
+      "mean": 71125.4,
+      "min": 68748,
+      "max": 74355
+    },
+    "total_messages_received": {
+      "mean": 1274.2
+    },
+    "nodes_delivered": {
+      "mean": 0.0
+    }
+  },
+  {
+    "config_file": "n30_f8_d20.yaml",
+    "optimization": "echo_amp",
+    "num_trials": 5,
+    "avg_latency_ms": {
+      "mean": 48643.63613333334,
+      "min": 47333.225333333336,
+      "max": 50592.94200000001
+    },
+    "total_messages_sent": {
+      "mean": 80854.6,
+      "min": 78370,
+      "max": 83207
+    },
+    "total_messages_received": {
+      "mean": 1377.8
+    },
+    "nodes_delivered": {
+      "mean": 0.0
+    }
+  },
+  {
+    "config_file": "n30_f8_d20.yaml",
+    "optimization": "echo_amp_single_hop",
+    "num_trials": 5,
+    "avg_latency_ms": {
+      "mean": 42866.789666666664,
+      "min": 42276.72166666667,
+      "max": 43122.897333333334
+    },
+    "total_messages_sent": {
+      "mean": 73815.2,
+      "min": 73069,
+      "max": 74387
+    },
+    "total_messages_received": {
+      "mean": 1351.0
+    },
+    "nodes_delivered": {
+      "mean": 0.0
+    }
+  },
+  {
+    "config_file": "n30_f8_d20.yaml",
+    "optimization": "reduced_messages",
+    "num_trials": 5,
+    "avg_latency_ms": {
+      "mean": 55231.44246666667,
+      "min": 54141.55733333332,
+      "max": 57083.89866666669
+    },
+    "total_messages_sent": {
+      "mean": 85196.8,
+      "min": 82027,
+      "max": 88804
+    },
+    "total_messages_received": {
+      "mean": 1332.8
+    },
+    "nodes_delivered": {
+      "mean": 0.0
+    }
+  },
+  {
+    "config_file": "n30_f8_d20.yaml",
+    "optimization": "full_optimized",
+    "num_trials": 5,
+    "avg_latency_ms": {
+      "mean": 42803.086533333335,
+      "min": 42161.94466666667,
+      "max": 43473.561
+    },
+    "total_messages_sent": {
+      "mean": 73490.6,
+      "min": 71673,
+      "max": 76186
+    },
+    "total_messages_received": {
+      "mean": 1351.2
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -319,17 +529,17 @@
     "optimization": "baseline",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 6579.525,
-      "min": 6240.326666666668,
-      "max": 6846.665
+      "mean": 7217.287333333334,
+      "min": 6708.608333333333,
+      "max": 7861.323333333333
     },
     "total_messages_sent": {
-      "mean": 452.0,
-      "min": 414,
-      "max": 492
+      "mean": 503.8,
+      "min": 456,
+      "max": 543
     },
     "total_messages_received": {
-      "mean": 58.6
+      "mean": 59.4
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -340,17 +550,17 @@
     "optimization": "echo_amp",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 7002.289714285714,
-      "min": 6623.455714285714,
-      "max": 7416.267142857143
+      "mean": 7080.576857142858,
+      "min": 6617.575714285714,
+      "max": 7492.231428571428
     },
     "total_messages_sent": {
-      "mean": 509.8,
-      "min": 493,
-      "max": 531
+      "mean": 514.6,
+      "min": 495,
+      "max": 534
     },
     "total_messages_received": {
-      "mean": 62.8
+      "mean": 63.2
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -361,17 +571,17 @@
     "optimization": "echo_amp_single_hop",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 7146.713142857143,
-      "min": 6732.2757142857145,
-      "max": 7492.108571428571
+      "mean": 7026.6988571428565,
+      "min": 6747.855714285714,
+      "max": 7345.711428571428
     },
     "total_messages_sent": {
-      "mean": 457.2,
-      "min": 444,
-      "max": 478
+      "mean": 455.2,
+      "min": 446,
+      "max": 467
     },
     "total_messages_received": {
-      "mean": 56.8
+      "mean": 57.0
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -382,17 +592,17 @@
     "optimization": "reduced_messages",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 7461.272285714285,
-      "min": 6900.05,
-      "max": 8490.641428571429
+      "mean": 7455.805714285714,
+      "min": 6526.331428571429,
+      "max": 8116.628571428571
     },
     "total_messages_sent": {
-      "mean": 478.0,
-      "min": 454,
-      "max": 511
+      "mean": 484.0,
+      "min": 420,
+      "max": 517
     },
     "total_messages_received": {
-      "mean": 60.0
+      "mean": 59.2
     },
     "nodes_delivered": {
       "mean": 0.0
@@ -403,14 +613,14 @@
     "optimization": "full_optimized",
     "num_trials": 5,
     "avg_latency_ms": {
-      "mean": 6953.520285714285,
-      "min": 6744.04,
-      "max": 7311.01
+      "mean": 7134.253714285714,
+      "min": 6980.660000000001,
+      "max": 7391.784285714285
     },
     "total_messages_sent": {
-      "mean": 471.2,
-      "min": 439,
-      "max": 516
+      "mean": 472.4,
+      "min": 433,
+      "max": 496
     },
     "total_messages_received": {
       "mean": 57.0
