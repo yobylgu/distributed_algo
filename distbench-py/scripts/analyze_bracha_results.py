@@ -108,6 +108,36 @@ class ResultAnalyzer:
         print(f"  ✓ Saved: {output_file.name}")
         plt.close()
 
+    def plot_bracha_logical_messages(self, data: Dict[str, Dict[int, dict]], comparison: str):
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        for opt, n_data in data.items():
+            if not n_data:
+                continue
+
+            n_values = sorted(n_data.keys())
+            totals = [
+                n_data[n]["bracha_send_total"]["mean"]
+                + n_data[n]["bracha_echo_total"]["mean"]
+                + n_data[n]["bracha_ready_total"]["mean"]
+                for n in n_values
+            ]
+
+            ax.plot(n_values, totals, marker='o', linewidth=2,
+                    label=LABELS.get(opt, opt), color=COLORS.get(opt))
+
+        ax.set_xlabel("Number of Nodes (N)")
+        ax.set_ylabel("Total Bracha Messages")
+        ax.set_title(f"Bracha Generated Messages vs N – {comparison}", fontsize=14, fontweight='bold')
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+
+        output = self.output_dir / f"bracha_messages_vs_n_{comparison.lower().replace(' ', '_')}.png"
+        plt.tight_layout()
+        plt.savefig(output, dpi=300)
+        print(f" Saved: {output.name}")
+        plt.close()
+
     def plot_messages_vs_n(self, data: Dict[str, Dict[int, dict]], comparison: str):
         """Plot message count vs N (LOG SCALE Y-axis) - CRITICAL for visibility."""
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -156,7 +186,7 @@ class ResultAnalyzer:
         }
         self.plot_latency_vs_n(data_echo_amp, "Echo Amplification")
         self.plot_messages_vs_n(data_echo_amp, "Echo Amplification")
-
+        self.plot_bracha_logical_messages(data_echo_amp, "Echo Amplification")
         # Comparison 2: Single-hop Send Impact
         print("\n2. Single-hop Send Impact:")
         data_single_hop = {
@@ -165,7 +195,7 @@ class ResultAnalyzer:
         }
         self.plot_latency_vs_n(data_single_hop, "Single-hop Send")
         self.plot_messages_vs_n(data_single_hop, "Single-hop Send")
-
+        self.plot_bracha_logical_messages(data_single_hop, "Single-hop Send")
         # Comparison 3: Reduced Messages (MBD.11) Impact
         print("\n3. Reduced Messages Impact:")
         data_reduced = {
@@ -174,12 +204,12 @@ class ResultAnalyzer:
         }
         self.plot_latency_vs_n(data_reduced, "Reduced Messages")
         self.plot_messages_vs_n(data_reduced, "Reduced Messages")
-
+        self.plot_bracha_logical_messages(data_reduced, "Reduced Messages")
         # All-in-one comparison
         print("\n4. All Optimizations Comparison:")
         self.plot_latency_vs_n(data, "All Optimizations")
         self.plot_messages_vs_n(data, "All Optimizations")
-
+        self.plot_bracha_logical_messages(data, "All Optimizations")
     def generate_summary_table(self):
         """Generate summary statistics table."""
         print("\nGenerating summary table...")

@@ -177,6 +177,9 @@ class BenchmarkRunner:
             "avg_latency_ms": 0.0,
             "min_latency_ms": 0.0,
             "max_latency_ms": 0.0,
+            "bracha_send_total": 0,
+            "bracha_echo_total": 0,
+            "bracha_ready_total": 0,
         }
 
         # Parse node-level metrics from JSON output
@@ -199,6 +202,21 @@ class BenchmarkRunner:
         latency_matches = re.findall(r'"avg_latency_ms":"([\d.]+)"', output)
         if latency_matches:
             latency_values = [float(x) for x in latency_matches if float(x) > 0]
+
+        #  Bracha SEND
+        send_matches = re.findall(r'"bracha_send_count":"(\d+)"', output)
+        if send_matches:
+            metrics["bracha_send_total"] = sum(int(x) for x in send_matches)
+
+        #  Bracha ECHO
+        echo_matches = re.findall(r'"bracha_echo_count":"(\d+)"', output)
+        if echo_matches:
+            metrics["bracha_echo_total"] = sum(int(x) for x in echo_matches)
+
+        #  Bracha READY
+        ready_matches = re.findall(r'"bracha_ready_count":"(\d+)"', output)
+        if ready_matches:
+            metrics["bracha_ready_total"] = sum(int(x) for x in ready_matches)
 
         # Count deliveries
         delivered_pattern = r">>> BRACHA DELIVERED"
@@ -303,6 +321,21 @@ class BenchmarkRunner:
                 },
                 "nodes_delivered": {
                     "mean": sum(t["nodes_delivered"] for t in trials) / len(trials),
+                },
+                "bracha_send_total": {
+                    "mean": sum(t["bracha_send_total"] for t in trials) / len(trials),
+                    "min": min(t["bracha_send_total"] for t in trials),
+                    "max": max(t["bracha_send_total"] for t in trials),
+                },
+                "bracha_echo_total": {
+                    "mean": sum(t["bracha_echo_total"] for t in trials) / len(trials),
+                    "min": min(t["bracha_echo_total"] for t in trials),
+                    "max": max(t["bracha_echo_total"] for t in trials),
+                },
+                "bracha_ready_total": {
+                    "mean": sum(t["bracha_ready_total"] for t in trials) / len(trials),
+                    "min": min(t["bracha_ready_total"] for t in trials),
+                    "max": max(t["bracha_ready_total"] for t in trials),
                 },
             })
 

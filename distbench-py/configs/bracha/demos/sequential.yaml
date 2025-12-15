@@ -1,0 +1,94 @@
+# Sequential broadcasts from one node test
+# Node n0 broadcasts 5 messages sequentially
+# Demonstrates: RC-No duplication - all messages delivered exactly once
+
+n0:
+  host: "127.0.0.1"
+  port: 10000
+  neighbours: ["n1","n9","n5"]
+  is_sender: true
+  payload: "sequential_msg"
+  behavior_mode: "HONEST"
+  num_messages: 2
+  f: 1
+
+n1:
+  host: "127.0.0.1"
+  port: 10001
+  neighbours: ["n0","n2","n6"]
+  is_sender: false
+  payload: "hello"
+  behavior_mode: "HONEST"
+  f: 1
+
+n2:
+  host: "127.0.0.1"
+  port: 10002
+  neighbours: ["n1","n3","n7"]
+  is_sender: false
+  payload: "hello"
+  behavior_mode: "HONEST"
+  f: 1
+
+n3:
+  host: "127.0.0.1"
+  port: 10003
+  neighbours: ["n2","n4","n8"]
+  is_sender: false
+  payload: "hello"
+  behavior_mode: "HONEST"
+  f: 1
+
+n4:
+  host: "127.0.0.1"
+  port: 10004
+  neighbours: ["n3","n5","n9"]
+  is_sender: false
+  payload: "hello"
+  behavior_mode: "HONEST"
+  f: 1
+
+n5:
+  host: "127.0.0.1"
+  port: 10005
+  neighbours: ["n4","n6","n0"]
+  is_sender: false
+  payload: "hello"
+  behavior_mode: "HONEST"
+  f: 1
+
+n6:
+  host: "127.0.0.1"
+  port: 10006
+  neighbours: ["n5","n7","n1"]
+  is_sender: false
+  payload: "hello"
+  behavior_mode: "HONEST"
+  f: 1
+
+n7:
+  host: "127.0.0.1"
+  port: 10007
+  neighbours: ["n6","n8","n2"]
+  is_sender: false
+  payload: "hello"
+  behavior_mode: "HONEST"
+  f: 1
+
+n8:
+  host: "127.0.0.1"
+  port: 10008
+  neighbours: ["n7","n9","n3"]
+  is_sender: false
+  payload: "hello"
+  behavior_mode: "HONEST"
+  f: 1
+
+n9:
+  host: "127.0.0.1"
+  port: 10009
+  neighbours: ["n8","n0","n4"]
+  is_sender: false
+  payload: "hello"
+  behavior_mode: "HONEST"
+  f: 1

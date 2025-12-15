@@ -70,19 +70,27 @@ class Dolev(Algorithm):
             print(f" DOLEV LOADED WITH NEIGHBOURS: {self.neighbour_ids}")
 
         # BYZANTINE_SPOOF: Send fake message claiming another node is the source
-        if self.behavior_mode == "BYZANTINE_SPOOF":
-            peer_ids = [str(p.peer_id) for p in self.peers.values()]
-            if peer_ids:
-                fake_source = peer_ids[0]  # Spoof first peer
-                fake_msg_id = str(uuid.uuid4())
-                self.logger.info(f"[{self._safe_id()}] BYZANTINE SPOOF: Sending fake message claiming source={fake_source}")
+        # Only run here if standalone (not child algorithm) - otherwise parent calls trigger_byzantine_spoof()
+        if self.behavior_mode == "BYZANTINE_SPOOF" and self._parent is None:
+            await self.trigger_byzantine_spoof()
 
-                fake_msg = DMsg(fake_msg_id, fake_source,"SPOOFED MESSAGE",[],)
+    async def trigger_byzantine_spoof(self):
+        """Trigger Byzantine spoof behavior - can be called by parent after neighbor_ids are set."""
+        if self.behavior_mode != "BYZANTINE_SPOOF":
+            return
 
-                for peer in self.peers.values():
-                    if str(peer.peer_id) in self.neighbour_ids:
-                        await self.delay()
-                        await peer.dolev(fake_msg)
+        peer_ids = [str(p.peer_id) for p in self.peers.values()]
+        if peer_ids and self.neighbour_ids:
+            fake_source = peer_ids[0]  # Spoof first peer
+            fake_msg_id = str(uuid.uuid4())
+            self.logger.info(f"[{self._safe_id()}] BYZANTINE SPOOF: Sending fake message claiming source={fake_source}")
+
+            fake_msg = DMsg(fake_msg_id, fake_source, "SPOOFED MESSAGE", [])
+
+            for peer in self.peers.values():
+                if str(peer.peer_id) in self.neighbour_ids:
+                    await self.delay()
+                    await peer.dolev(fake_msg)
 
         # Only run standalone Dolev logic if not used as a child algorithm
         if self._parent is None:

@@ -29,7 +29,8 @@ class BrachaOptimized(Algorithm):
     enable_echo_amplification: bool = config_field(default=True)
     enable_single_hop_send: bool = config_field(default=True)
     enable_reduced_messages: bool = config_field(default=True)
-
+    num_messages: int = config_field(default=1)
+    behavior_mode: str = config_field(default="HONEST")
     dolev_alg: Dolev = child_algorithm(Dolev)
 
     def __init__(self, config: dict, peers: dict):
@@ -52,8 +53,11 @@ class BrachaOptimized(Algorithm):
         self.delivery_times: dict[str, float] = {}  # msg_id -> delivery timestamp
         self.messages_sent: int = 0
         self.messages_received: int = 0
-        # system needs to know this in advance
-        self.expected_senders = set()
+        self.bracha_send_count = 0
+        self.bracha_echo_count = 0
+        self.bracha_ready_count = 0
+
+        self.expected_messages: set[str] = set()
 
         self.logger = logging.getLogger("PLACEHOLDER")
         # Validate dependencies
@@ -119,9 +123,10 @@ class BrachaOptimized(Algorithm):
         eligible = self.calculate_eligible_nodes(sender_id, count)
         return my_id in eligible
 
-    def all_delivered(self) -> bool:
-        # All known messages delivered by this node?
-        return all(self.delivered.values())
+    def register_message(self, msg_id: str):
+        if msg_id not in self.expected_messages:
+            self.expected_messages.add(msg_id)
+
 
     async def on_start(self):
         self.logger = logging.getLogger(f"bracha-{self.id()}")
@@ -144,6 +149,14 @@ class BrachaOptimized(Algorithm):
         if hasattr(self.dolev_alg, 'neighbour_ids') and self.community:
             self.dolev_alg.neighbour_ids = {str(pid) for pid in self.community.neighbours}
 
+        # Pass behavior_mode to child Dolev for Byzantine testing
+        self.dolev_alg.behavior_mode = self.behavior_mode
+        self.logger.info(f"[{self.id()}] Behavior mode: {self.behavior_mode}")
+
+        # Trigger Byzantine spoof behavior now that neighbor_ids are set
+        if self.behavior_mode == "BYZANTINE_SPOOF":
+            await self.dolev_alg.trigger_byzantine_spoof()
+
         self.logger.info(
             f"[{self.id()}] Bracha Optimized starting "
             f"(N={self.N}, f={self.f}, "
@@ -157,44 +170,52 @@ class BrachaOptimized(Algorithm):
         )
 
         if self.is_sender:
-            msg_id = str(uuid.uuid4())
-            self.logger.info(f"[{self.id()}] SENDER broadcasting SEND: {msg_id}")
-            self.init_state(msg_id)
-            self.expected_senders.add(str(self.id()))  # Track self as sender
+            for i in range (self.num_messages):
+                msg_id = str(uuid.uuid4())
+                self.logger.info(f"[{self.id()}] SENDER broadcasting SEND: {msg_id}")
+                self.init_state(msg_id)
 
-            msg = BrachaMessage("send", str(self.id()), msg_id, "hello - " + str(self.id()))
+                self.register_message(msg_id)
 
-            if self.enable_single_hop_send:
-                # MBD.2: Send SEND only to direct neighbors
-                self.logger.info(f"[{self.id()}] Single-hop Send: Sending SEND to neighbors only")
-                neighbour_ids = {str(pid) for pid in self.community.neighbours}
+                msg = BrachaMessage("send", str(self.id()), msg_id, "hello - " + str(self.id()) + " - " + str(i))
 
-                # Delay to ensure all peer nodes have completed initialization
-                # This ensures child Dolev algorithms have self.community set
-                await asyncio.sleep(1.0)
+                if self.enable_single_hop_send:
+                    # MBD.2: Send SEND only to direct neighbors
+                    self.logger.info(f"[{self.id()}] Single-hop Send: Sending SEND to neighbors only")
+                    neighbour_ids = {str(pid) for pid in self.community.neighbours}
 
-                # Send directly to neighbor Bracha instances (bypass Dolev broadcast)
-                for peer in self.peers.values():
-                    if str(peer.peer_id) in neighbour_ids:
-                        await peer.send(msg)
-                        self.messages_sent += 1
-            else:
-                # Standard: Broadcast SEND via full Dolev
-                await self.bracha("send", msg)
+                    # Delay to ensure all peer nodes have completed initialization
+                    # This ensures child Dolev algorithms have self.community set
+                    await asyncio.sleep(1.0)
 
-            # Sender always sends own ECHO (if eligible in reduced messages mode)
-            self.seen_messages.add(msg_id)
-            if self.should_generate_echo(str(self.id())):
-                self.sent_echo[msg_id] = True
-                self.echos[msg_id].add(str(self.id()))  # Count own ECHO
-                await self.bracha("echo", BrachaMessage("echo", msg.sender, msg_id, msg.payload))
+                    # Send directly to neighbor Bracha instances (bypass Dolev broadcast)
+                    for peer in self.peers.values():
+                        if str(peer.peer_id) in neighbour_ids:
+                            await peer.send(msg)
+                            self.messages_sent += 1
+                else:
+                    # Standard: Broadcast SEND via full Dolev
+                    await self.bracha("send", msg)
 
-            # Fallback timeout - wait for algorithm to complete or timeout
+                # Sender always sends own ECHO (if eligible in reduced messages mode)
+                self.seen_messages.add(msg_id)
+                if self.should_generate_echo(str(self.id())):
+                    self.sent_echo[msg_id] = True
+                    self.echos[msg_id].add(str(self.id()))  # Count own ECHO
+                    await self.bracha("echo", BrachaMessage("echo", msg.sender, msg_id, msg.payload))
+
 
     def on_exit(self):
         return self.report()
+
     async def bracha(self, method: str, msg: BrachaMessage):
         self.logger.info(f"[{self.id()}] BRACHA {method} {msg}")
+        if method == "send":
+            self.bracha_send_count += 1
+        elif method == "echo":
+            self.bracha_echo_count += 1
+        elif method == "ready":
+            self.bracha_ready_count += 1
         await self.dolev_alg.yes_daddy_bracha(msg)
 
     @handler
@@ -219,7 +240,6 @@ class BrachaOptimized(Algorithm):
             b_msg = BrachaMessage(**payload)
         else:
             b_msg = payload
-        self.expected_senders.add(str(b_msg.sender))
         if b_msg.phase == "send":
             await self.send(src, b_msg)
         elif b_msg.phase == "echo":
@@ -232,7 +252,7 @@ class BrachaOptimized(Algorithm):
         msg_id = msg.msg_id
         self.logger.info(f"[{self.id()}] RECV SEND from {src} msg_id={msg_id}")
         self.init_state(msg_id)
-        self.expected_senders.add(str(msg.sender))
+        self.register_message(msg_id)
         if msg_id not in self.seen_messages:
             self.seen_messages.add(msg_id)
             # dont care about eligibility, single hop HAS to echo
@@ -256,6 +276,7 @@ class BrachaOptimized(Algorithm):
         msg_id = msg.msg_id
         self.logger.info(f"[{self.id()}] RECV ECHO from {src} msg_id={msg_id}")
         self.init_state(msg_id)
+        self.register_message(msg_id)
         self.echos[msg_id].add(str(src))
 
         # Echo Amplification: Send ECHO early if we have f+1 ECHOs
@@ -285,6 +306,7 @@ class BrachaOptimized(Algorithm):
         msg_id = msg.msg_id
         self.logger.info(f"[{self.id()}] RECV READY from {src} msg_id={msg_id}")
         self.init_state(msg_id)
+        self.register_message(msg_id)
         self.readys[msg_id].add(str(src))
 
         # Determine if we will send READY now (due to f+1 READYs)
@@ -326,14 +348,12 @@ class BrachaOptimized(Algorithm):
 
     async def check_completion(self):
         """Check if all expected messages have been delivered."""
-        # Count how many unique senders we've seen
-        expected_count = len(self.expected_senders)
-        delivered_count = sum(1 for d in self.delivered.values() if d)
+        expected_count = len(self.expected_messages)
+        delivered_count = sum(self.delivered.get(mid, False) for mid in self.expected_messages)
 
-        self.logger.debug(f"[{self.id()}] Completion check: delivered {delivered_count}/{expected_count}")
+        self.logger.debug(f"[{self.id()}] Completion check: delivered {delivered_count}/{expected_count} messages")
 
-        # If we've delivered all messages from known senders, we're done
-        if expected_count > 0 and delivered_count >= expected_count:
+        if 0 < expected_count == delivered_count:
             self.logger.info(f"[{self.id()}] All {delivered_count} messages delivered, terminating")
             await self.terminate()
 
@@ -364,6 +384,10 @@ class BrachaOptimized(Algorithm):
             "max_latency_ms": f"{max_latency:.2f}",
             "echo_threshold": str(self.ready_threshold),
             "ready_threshold": str(self.deliver_threshold),
+
+            "bracha_send_count": str(self.bracha_send_count),
+            "bracha_echo_count": str(self.bracha_echo_count),
+            "bracha_ready_count": str(self.bracha_ready_count),
         }
         try:
             self.logger.info(f"BRACHA_METRICS_JSON: {report}")

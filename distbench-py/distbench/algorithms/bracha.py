@@ -49,6 +49,9 @@ class Bracha(Algorithm):
         self.messages_received: int = 0
         self.expected_senders: set[str] = set()  # Track unique senders for dynamic completion
 
+        self.bracha_send_count = 0
+        self.bracha_echo_count = 0
+        self.bracha_ready_count = 0
     # dicts for messages otherwise it explodes
     def init_state(self, msg_id):
         if msg_id not in self.echos:
@@ -106,6 +109,12 @@ class Bracha(Algorithm):
 
     async def bracha(self, method: str, msg: BrachaMessage):
         self.logger.info(f"[{self.id()}] BRACHA {method} {msg}")
+        if method == "send":
+            self.bracha_send_count += 1
+        elif method == "echo":
+            self.bracha_echo_count += 1
+        elif method == "ready":
+            self.bracha_ready_count += 1
         await self.dolev_alg.yes_daddy_bracha(msg)
 
     @handler
@@ -218,6 +227,10 @@ class Bracha(Algorithm):
             "max_latency_ms": f"{max_latency:.2f}",
             "echo_threshold": str(self.ready_threshold),
             "ready_threshold": str(self.deliver_threshold),
+
+            "bracha_send_count": str(self.bracha_send_count),
+            "bracha_echo_count": str(self.bracha_echo_count),
+            "bracha_ready_count": str(self.bracha_ready_count),
         }
         try:
             self.logger.info(f"BRACHA_METRICS_JSON: {report}")

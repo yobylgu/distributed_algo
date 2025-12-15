@@ -1,13 +1,19 @@
+# INTEGRITY Test: Even if all faulty nodes collude, they cannot lead any
+# correct node to deliver a forged message from a correct node.
+#
+# Setup: n0 is HONEST sender, n8 and n9 are BYZANTINE_SPOOF
+# Byzantine nodes try to forge messages claiming to be from honest nodes.
+# Dolev's path verification (f+1 disjoint paths) blocks forged messages.
+# Expected: Only 10 deliveries (the legitimate message from n0)
+
 n0:
   host: 127.0.0.1
   port: 10000
   neighbours:
-  - n5
+  - n2
   - n1
   - n7
-  - n3
   - n9
-  - n6
   is_sender: true
   f: 2
   behavior_mode: HONEST
@@ -16,11 +22,9 @@ n1:
   port: 10001
   neighbours:
   - n0
-  - n6
   - n3
-  - n9
-  - n5
-  - n8
+  - n4
+  - n7
   is_sender: false
   f: 2
   behavior_mode: HONEST
@@ -28,11 +32,9 @@ n2:
   host: 127.0.0.1
   port: 10002
   neighbours:
+  - n0
   - n5
-  - n8
   - n4
-  - n7
-  - n9
   - n6
   is_sender: false
   f: 2
@@ -41,12 +43,10 @@ n3:
   host: 127.0.0.1
   port: 10003
   neighbours:
-  - n0
   - n1
-  - n7
+  - n4
   - n9
-  - n5
-  - n8
+  - n6
   is_sender: false
   f: 2
   behavior_mode: HONEST
@@ -54,12 +54,10 @@ n4:
   host: 127.0.0.1
   port: 10004
   neighbours:
+  - n1
   - n2
-  - n9
-  - n6
-  - n5
+  - n3
   - n8
-  - n7
   is_sender: false
   f: 2
   behavior_mode: HONEST
@@ -67,12 +65,10 @@ n5:
   host: 127.0.0.1
   port: 10005
   neighbours:
-  - n0
-  - n1
   - n2
-  - n3
-  - n4
+  - n6
   - n9
+  - n8
   is_sender: false
   f: 2
   behavior_mode: HONEST
@@ -80,12 +76,10 @@ n6:
   host: 127.0.0.1
   port: 10006
   neighbours:
-  - n0
-  - n1
   - n2
-  - n4
+  - n3
+  - n5
   - n8
-  - n7
   is_sender: false
   f: 2
   behavior_mode: HONEST
@@ -94,10 +88,8 @@ n7:
   port: 10007
   neighbours:
   - n0
-  - n2
-  - n3
-  - n4
-  - n6
+  - n1
+  - n9
   - n8
   is_sender: false
   f: 2
@@ -106,10 +98,8 @@ n8:
   host: 127.0.0.1
   port: 10008
   neighbours:
-  - n1
-  - n2
-  - n3
   - n4
+  - n5
   - n6
   - n7
   is_sender: false
@@ -120,11 +110,9 @@ n9:
   port: 10009
   neighbours:
   - n0
-  - n1
-  - n2
   - n3
-  - n4
   - n5
+  - n7
   is_sender: false
   f: 2
   behavior_mode: BYZANTINE_SPOOF

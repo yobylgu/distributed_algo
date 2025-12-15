@@ -1,21 +1,18 @@
-# AGREEMENT Test: A faulty node that initiates a broadcast and sends its
-# message to a limited number of neighbors either leads ALL correct nodes
-# to deliver it, or NONE at all.
+# AGREEMENT Test (None Deliver Case): Byzantine selective sender with limited reach
+# Demonstrates the "NONE deliver" case of all-or-nothing agreement.
 #
-# Setup: n0 is BYZANTINE_SELECTIVE sender (only sends to subset of neighbors)
-# Expected: Either 0 deliveries (none deliver) or ~9 deliveries (all honest nodes deliver)
-# This demonstrates the all-or-nothing agreement property.
+# Setup: n0 is BYZANTINE_SELECTIVE sender with only 2 neighbors
+# - Selective sends to only 1 neighbor (2 // 2 = 1)
+# - With f=2, echo threshold = 7, ready threshold = 5
+# - 1 node cannot generate enough ECHOs to cascade
+# Expected: 0 deliveries (none of the honest nodes deliver)
 
 n0:
   host: 127.0.0.1
   port: 10000
   neighbours:
-  - n5
   - n1
-  - n7
-  - n3
-  - n9
-  - n6
+  - n2
   is_sender: true
   f: 2
   behavior_mode: BYZANTINE_SELECTIVE
@@ -24,11 +21,11 @@ n1:
   port: 10001
   neighbours:
   - n0
-  - n6
+  - n2
   - n3
-  - n9
+  - n4
   - n5
-  - n8
+  - n6
   is_sender: false
   f: 2
   behavior_mode: HONEST
@@ -36,12 +33,12 @@ n2:
   host: 127.0.0.1
   port: 10002
   neighbours:
-  - n5
-  - n8
+  - n0
+  - n1
+  - n3
   - n4
+  - n5
   - n7
-  - n9
-  - n6
   is_sender: false
   f: 2
   behavior_mode: HONEST
@@ -49,11 +46,11 @@ n3:
   host: 127.0.0.1
   port: 10003
   neighbours:
-  - n0
   - n1
-  - n7
-  - n9
+  - n2
+  - n4
   - n5
+  - n6
   - n8
   is_sender: false
   f: 2
@@ -62,12 +59,12 @@ n4:
   host: 127.0.0.1
   port: 10004
   neighbours:
+  - n1
   - n2
-  - n9
+  - n3
   - n6
-  - n5
-  - n8
   - n7
+  - n9
   is_sender: false
   f: 2
   behavior_mode: HONEST
@@ -75,11 +72,11 @@ n5:
   host: 127.0.0.1
   port: 10005
   neighbours:
-  - n0
   - n1
   - n2
   - n3
-  - n4
+  - n7
+  - n8
   - n9
   is_sender: false
   f: 2
@@ -88,12 +85,12 @@ n6:
   host: 127.0.0.1
   port: 10006
   neighbours:
-  - n0
   - n1
-  - n2
+  - n3
   - n4
-  - n8
   - n7
+  - n8
+  - n9
   is_sender: false
   f: 2
   behavior_mode: HONEST
@@ -101,12 +98,12 @@ n7:
   host: 127.0.0.1
   port: 10007
   neighbours:
-  - n0
   - n2
-  - n3
   - n4
+  - n5
   - n6
   - n8
+  - n9
   is_sender: false
   f: 2
   behavior_mode: HONEST
@@ -114,12 +111,11 @@ n8:
   host: 127.0.0.1
   port: 10008
   neighbours:
-  - n1
-  - n2
   - n3
-  - n4
+  - n5
   - n6
   - n7
+  - n9
   is_sender: false
   f: 2
   behavior_mode: HONEST
@@ -127,12 +123,11 @@ n9:
   host: 127.0.0.1
   port: 10009
   neighbours:
-  - n0
-  - n1
-  - n2
-  - n3
   - n4
   - n5
+  - n6
+  - n7
+  - n8
   is_sender: false
   f: 2
   behavior_mode: HONEST
