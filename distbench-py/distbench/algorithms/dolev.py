@@ -47,6 +47,8 @@ class Dolev(Algorithm):
         """tries to get parent id if parent exist, preserves logging ownerhip"""
         try:
             if self._parent:
+                if hasattr(self._parent, "_safe_id"):
+                    return str(self._parent._safe_id())
                 return str(self._parent.id())
             return str(self.id())
         except RuntimeError:
@@ -131,7 +133,7 @@ class Dolev(Algorithm):
             self.logger.info(f"[{self._safe_id()}] Dolev child ready, controlled by parent algorithm")
 
     async def delay(self):
-        await asyncio.sleep(random.uniform(0, self.max_delay))
+        await asyncio.sleep(random.uniform(0, 0))
 
     def _ensure_logger(self):
         # If parent says split logs
@@ -177,12 +179,8 @@ class Dolev(Algorithm):
                 self.neighbour_ids = {str(pid) for pid in self._parent.community.neighbours}
             elif self.community:
                 self.neighbour_ids = {str(pid) for pid in self.community.neighbours}
+        sender_id = self._safe_id()
 
-        try:
-            sender_id = str(self._parent.id()) if self._parent else str(self.id())
-        except RuntimeError:
-            sender_id = "unknown"
-        
         # Create unique Dolev msg_id: combines Bracha msg_id + phase + sender
         # This ensures each node's broadcast of ECHO/READY is tracked separately
         dolev_msg_id = f"{bracha_msg.msg_id}:{bracha_msg.phase}:{sender_id}"
