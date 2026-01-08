@@ -1,0 +1,78 @@
+# 7 nodes, f=1 Byzantine tolerance
+n0:
+  host: 127.0.0.1
+  port: 10000
+  neighbours: [n1, n2, n3, n4]
+  is_sender: true
+  num_messages: 3
+  f: 1
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n1:
+  host: 127.0.0.1
+  port: 10001
+  neighbours: [n0, n2, n5, n6]
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n2:
+  host: 127.0.0.1
+  port: 10002
+  neighbours: [n0, n1, n3, n6]
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n3:
+  host: 127.0.0.1
+  port: 10003
+  neighbours: [n0, n2, n4, n5]
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n4:
+  host: 127.0.0.1
+  port: 10004
+  neighbours: [n0, n3, n5, n6]
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n5:
+  host: 127.0.0.1
+  port: 10005
+  neighbours: [n1, n3, n4, n6]
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n6:
+  host: 127.0.0.1
+  port: 10006
+  neighbours: [n1, n2, n4, n5]
+  is_sender: false
+  f: 1
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false

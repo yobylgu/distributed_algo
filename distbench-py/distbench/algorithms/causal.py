@@ -37,8 +37,15 @@ class RCB(Algorithm):
         self.start_time: float = 0.0
         self.rcb_broadcast_count: int = 0
         self.rcb_deliver_count: int = 0
+        self.delivery_times: Dict[str, float] = {}  # msg_id -> delivery timestamp
+        self.messages_sent: int = 0
+        self.messages_received: int = 0
 
         self.logger = logging.getLogger("PLACEHOLDER")
+        
+        # Set behavior mode early so child algorithms inherit it
+        self.bracha.behavior_mode = self.behavior_mode
+        self.bracha.f = self.f
 
 
     async def on_start(self):
@@ -55,10 +62,22 @@ class RCB(Algorithm):
 
         self.start_time = time.time()
         self.logger.info(f"[{self.id()}] RCB starting")
+        self.logger.info(f"[{self.id()}] Behavior mode: {self.behavior_mode}")
+        self.logger.info(f"[{self.id()}] Bracha optimizations: echo_amp={self.bracha.enable_echo_amplification}, single_hop={self.bracha.enable_single_hop_send}, reduced_msgs={self.bracha.enable_reduced_messages}")
+        
+        # Ensure child algorithms have correct settings
         self.bracha.is_sender = False
         self.bracha.num_messages = 0
-        self.bracha.f = self.f
-        self.bracha.behavior_mode = self.behavior_mode
+        
+        # Manually set neighbour_ids for Dolev child (needed for Byzantine behavior)
+        if self.community:
+            self.bracha.dolev_alg.neighbour_ids = {str(pid) for pid in self.community.neighbours}
+        
+        # Manually trigger Byzantine behavior if needed
+        # (Child's on_start already ran, so we need to trigger it manually)
+        if self.behavior_mode == "BYZANTINE_SPOOF":
+            await self.bracha.dolev_alg.trigger_byzantine_spoof()
+            self.logger.info(f"[{self.id()}] Triggered Byzantine spoof behavior")
 
         curr = str(self.id())
         ids = sorted({curr} | {str(p.peer_id) for p in self.peers.values()})
@@ -131,7 +150,43 @@ class RCB(Algorithm):
 
     def _rcb_deliver(self, sender: str, m: Any):
         self.rcb_deliver_count += 1
+        msg_id = f"{sender}:{m}"
+        self.delivery_times[msg_id] = time.time()
         self.logger.info(f"[{self.id()}] >>> RCB DELIVER from {sender}: {m} <<<")
+
+    def on_exit(self):
+        """Called when algorithm exits - returns metrics report."""
+        return self.report()
+
+    def report(self) -> dict:
+        """Generate metrics report for benchmarking."""
+        # Calculate latencies
+        latencies = []
+        for msg_id, delivery_time in self.delivery_times.items():
+            latency_ms = (delivery_time - self.start_time) * 1000
+            latencies.append(latency_ms)
+
+        avg_latency = sum(latencies) / len(latencies) if latencies else 0.0
+        min_latency = min(latencies) if latencies else 0.0
+        max_latency = max(latencies) if latencies else 0.0
+
+        report = {
+            "node_id": str(self.id()),
+            "is_sender": str(self.is_sender),
+            "N": str(len(self.peers) + 1),
+            "f": str(self.f),
+            "behavior_mode": self.behavior_mode,
+            "rcb_broadcast_count": str(self.rcb_broadcast_count),
+            "rcb_deliver_count": str(self.rcb_deliver_count),
+            "avg_latency_ms": f"{avg_latency:.2f}",
+            "min_latency_ms": f"{min_latency:.2f}",
+            "max_latency_ms": f"{max_latency:.2f}",
+            "messages_sent": str(self.messages_sent),
+            "messages_received": str(self.messages_received),
+        }
+
+        self.logger.info(f"RCB_METRICS_JSON: {report}")
+        return report
 
 
     # child handlers

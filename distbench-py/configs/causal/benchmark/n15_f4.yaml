@@ -1,0 +1,166 @@
+# 15 nodes, f=4 Byzantine tolerance (N > 3f, so 15 > 12)
+n0:
+  host: 127.0.0.1
+  port: 10000
+  neighbours: [n1, n2, n3, n4, n5, n6, n7, n8, n14]
+  is_sender: true
+  num_messages: 3
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n1:
+  host: 127.0.0.1
+  port: 10001
+  neighbours: [n0, n2, n3, n5, n6, n8, n9, n10, n14]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n2:
+  host: 127.0.0.1
+  port: 10002
+  neighbours: [n0, n1, n3, n4, n7, n9, n10, n11, n13]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n3:
+  host: 127.0.0.1
+  port: 10003
+  neighbours: [n0, n1, n2, n4, n5, n8, n10, n11, n12]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n4:
+  host: 127.0.0.1
+  port: 10004
+  neighbours: [n0, n2, n3, n5, n6, n9, n11, n12, n13]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n5:
+  host: 127.0.0.1
+  port: 10005
+  neighbours: [n0, n1, n3, n4, n6, n7, n10, n12, n14]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n6:
+  host: 127.0.0.1
+  port: 10006
+  neighbours: [n0, n1, n4, n5, n7, n8, n11, n13, n14]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n7:
+  host: 127.0.0.1
+  port: 10007
+  neighbours: [n0, n2, n5, n6, n8, n9, n12, n13, n14]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n8:
+  host: 127.0.0.1
+  port: 10008
+  neighbours: [n0, n1, n3, n6, n7, n9, n10, n11, n12]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n9:
+  host: 127.0.0.1
+  port: 10009
+  neighbours: [n1, n2, n4, n7, n8, n10, n11, n13, n14]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n10:
+  host: 127.0.0.1
+  port: 10010
+  neighbours: [n1, n2, n3, n5, n8, n9, n12, n13, n14]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n11:
+  host: 127.0.0.1
+  port: 10011
+  neighbours: [n2, n3, n4, n6, n8, n9, n12, n13, n14]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n12:
+  host: 127.0.0.1
+  port: 10012
+  neighbours: [n3, n4, n5, n7, n8, n10, n11, n13, n14]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n13:
+  host: 127.0.0.1
+  port: 10013
+  neighbours: [n2, n4, n6, n7, n9, n10, n11, n12, n14]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n14:
+  host: 127.0.0.1
+  port: 10014
+  neighbours: [n0, n1, n5, n6, n7, n9, n10, n11, n12, n13]
+  is_sender: false
+  f: 4
+  behavior_mode: HONEST
+  split_logs: true
+  bracha:
+    is_sender: false

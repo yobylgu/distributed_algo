@@ -1,0 +1,111 @@
+n0:
+  host: "127.0.0.1"
+  port: 10000
+  neighbours: ["n1","n9","n5"]
+  is_sender: true
+  num_messages: 3
+  f: 2
+  behavior_mode: "HONEST"
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n1:
+  host: "127.0.0.1"
+  port: 10001
+  neighbours: ["n0","n2","n6"]
+  is_sender: false
+  f: 2
+  behavior_mode: "HONEST"
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n2:
+  host: "127.0.0.1"
+  port: 10002
+  neighbours: ["n1","n3","n7"]
+  is_sender: false
+  f: 2
+  behavior_mode: "HONEST"
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n3:
+  host: "127.0.0.1"
+  port: 10003
+  neighbours: ["n2","n4","n8"]
+  is_sender: false
+  f: 2
+  behavior_mode: "HONEST"
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n4:
+  host: "127.0.0.1"
+  port: 10004
+  neighbours: ["n3","n5","n9"]
+  is_sender: false
+  f: 2
+  behavior_mode: "HONEST"
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n5:
+  host: "127.0.0.1"
+  port: 10005
+  neighbours: ["n4","n6","n0"]
+  is_sender: false
+  f: 2
+  behavior_mode: "HONEST"
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n6:
+  host: "127.0.0.1"
+  port: 10006
+  neighbours: ["n5","n7","n1"]
+  is_sender: false
+  f: 2
+  behavior_mode: "HONEST"
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n7:
+  host: "127.0.0.1"
+  port: 10007
+  neighbours: ["n6","n8","n2"]
+  is_sender: false
+  f: 2
+  behavior_mode: "HONEST"
+  split_logs: true
+  bracha:
+    is_sender: false
+
+# Byzantine nodes - attempt to spoof messages
+n8:
+  host: "127.0.0.1"
+  port: 10008
+  neighbours: ["n7","n9","n3"]
+  is_sender: false
+  f: 2
+  behavior_mode: "BYZANTINE_SPOOF"
+  split_logs: true
+  bracha:
+    is_sender: false
+
+n9:
+  host: "127.0.0.1"
+  port: 10009
+  neighbours: ["n8","n0","n4"]
+  is_sender: false
+  f: 2
+  behavior_mode: "BYZANTINE_SPOOF"
+  split_logs: true
+  bracha:
+    is_sender: false
