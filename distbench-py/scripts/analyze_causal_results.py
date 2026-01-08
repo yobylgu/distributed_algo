@@ -29,7 +29,9 @@ except ImportError:
 plt.style.use('default')
 COLORS = {
     "honest": "#2ecc71",      # Green
-    "byzantine": "#e74c3c",   # Red
+    "spoof": "#e74c3c",       # Red
+    "silent": "#f39c12",      # Orange
+    "byzantine": "#e74c3c",   # Red (legacy)
 }
 
 
@@ -53,15 +55,46 @@ class CausalResultAnalyzer:
             return int(match.group(1))
         return 0
 
+    def extract_behavior_type(self, config_file: str) -> str:
+        """Extract behavior type from config filename.
+
+        Examples:
+            n10_f2.yaml -> 'honest'
+            n10_f2_honest.yaml -> 'honest'
+            n10_f2_spoof.yaml -> 'spoof'
+            n10_f2_silent.yaml -> 'silent'
+        """
+        if '_spoof' in config_file:
+            return 'spoof'
+        elif '_silent' in config_file:
+            return 'silent'
+        else:
+            return 'honest'
+
     def organize_data(self) -> Dict[int, dict]:
-        """Organize summary data by N value."""
+        """Organize summary data by N value (only honest configs)."""
         data = {}
 
         for entry in self.summary:
             n = self.extract_n_value(entry["config_file"])
-            if n == 0:
+            behavior = self.extract_behavior_type(entry["config_file"])
+            if n == 0 or behavior != 'honest':
                 continue
             data[n] = entry
+
+        return data
+
+    def organize_byzantine_data(self) -> Dict[str, dict]:
+        """Organize summary data by behavior type for Byzantine comparison."""
+        data = {'honest': None, 'spoof': None, 'silent': None}
+
+        for entry in self.summary:
+            n = self.extract_n_value(entry["config_file"])
+            behavior = self.extract_behavior_type(entry["config_file"])
+
+            # Only use N=10 configs for Byzantine comparison
+            if n == 10:
+                data[behavior] = entry
 
         return data
 
@@ -136,6 +169,97 @@ class CausalResultAnalyzer:
         print(f"  Saved: {output_file.name}")
         plt.close()
 
+    def plot_byzantine_comparison(self, data: Dict[str, dict]):
+        """Plot Byzantine behavior comparison (latency and messages side by side)."""
+        behaviors = ['honest', 'spoof', 'silent']
+        available = [b for b in behaviors if data.get(b) is not None]
+
+        if len(available) < 2:
+            print("  Skipping Byzantine comparison (need at least 2 behavior types)")
+            return
+
+        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+
+        # Prepare data
+        latencies = []
+        messages = []
+        deliveries = []
+
+        for b in available:
+            entry = data[b]
+            latencies.append(entry["avg_latency_ms"]["mean"])
+            messages.append(entry["total_messages_sent"]["mean"])
+            deliveries.append(entry["rcb_deliver_total"]["mean"])
+
+        colors = [COLORS.get(b, "#999999") for b in available]
+        labels = [b.upper() for b in available]
+        x = np.arange(len(available))
+
+        # Plot 1: Latency comparison
+        ax1 = axes[0]
+        bars1 = ax1.bar(x, latencies, color=colors, edgecolor='black', linewidth=1.2)
+        ax1.set_xlabel('Behavior', fontsize=11)
+        ax1.set_ylabel('Latency (ms)', fontsize=11)
+        ax1.set_title('Latency Comparison', fontsize=12, fontweight='bold')
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(labels)
+        ax1.grid(True, alpha=0.3, axis='y')
+        # Add value labels on bars
+        for bar, val in zip(bars1, latencies):
+            ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 50,
+                    f'{val:.0f}', ha='center', va='bottom', fontsize=9)
+
+        # Plot 2: Message complexity comparison
+        ax2 = axes[1]
+        bars2 = ax2.bar(x, messages, color=colors, edgecolor='black', linewidth=1.2)
+        ax2.set_xlabel('Behavior', fontsize=11)
+        ax2.set_ylabel('Messages Sent', fontsize=11)
+        ax2.set_title('Message Complexity', fontsize=12, fontweight='bold')
+        ax2.set_xticks(x)
+        ax2.set_xticklabels(labels)
+        ax2.grid(True, alpha=0.3, axis='y')
+        # Add value labels on bars
+        for bar, val in zip(bars2, messages):
+            ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 50,
+                    f'{val:.0f}', ha='center', va='bottom', fontsize=9)
+
+        # Plot 3: Delivery success (should be same for all if protocol works)
+        ax3 = axes[2]
+        # Calculate delivery rate (expected = 10 nodes * 3 messages = 30 for honest nodes)
+        # For Byzantine scenarios, only 8 honest nodes should deliver = 24
+        expected_honest = 30  # 10 * 3
+        expected_byzantine = 24  # 8 * 3 (only honest nodes deliver)
+        delivery_rates = []
+        for b, d in zip(available, deliveries):
+            if b == 'honest':
+                rate = (d / expected_honest) * 100
+            else:
+                # In Byzantine scenario, we expect 8 honest nodes to deliver 3 messages each
+                rate = (d / expected_honest) * 100  # Compare to honest baseline
+            delivery_rates.append(rate)
+
+        bars3 = ax3.bar(x, delivery_rates, color=colors, edgecolor='black', linewidth=1.2)
+        ax3.set_xlabel('Behavior', fontsize=11)
+        ax3.set_ylabel('Delivery Rate (%)', fontsize=11)
+        ax3.set_title('Delivery Success Rate', fontsize=12, fontweight='bold')
+        ax3.set_xticks(x)
+        ax3.set_xticklabels(labels)
+        ax3.set_ylim(0, 120)
+        ax3.axhline(y=100, color='gray', linestyle='--', alpha=0.5, label='100% target')
+        ax3.grid(True, alpha=0.3, axis='y')
+        # Add value labels on bars
+        for bar, val in zip(bars3, delivery_rates):
+            ax3.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 2,
+                    f'{val:.1f}%', ha='center', va='bottom', fontsize=9)
+
+        plt.suptitle('Byzantine Behavior Impact (N=10, f=2)', fontsize=14, fontweight='bold', y=1.02)
+        plt.tight_layout()
+
+        output_file = self.output_dir / "byzantine_comparison.png"
+        plt.savefig(output_file, dpi=300, bbox_inches='tight')
+        print(f"  Saved: {output_file.name}")
+        plt.close()
+
     def generate_plots(self):
         """Generate all plots for the report."""
         print("\nGenerating plots...")
@@ -143,14 +267,18 @@ class CausalResultAnalyzer:
         data = self.organize_data()
 
         if not data:
-            print("No data to plot")
-            return
+            print("No honest baseline data to plot")
+        else:
+            print(f"  Data for N values: {sorted(data.keys())}")
+            self.plot_latency_vs_n(data)
+            self.plot_messages_vs_n(data)
+            self.plot_deliveries_vs_n(data)
 
-        print(f"  Data for N values: {sorted(data.keys())}")
-
-        self.plot_latency_vs_n(data)
-        self.plot_messages_vs_n(data)
-        self.plot_deliveries_vs_n(data)
+        # Byzantine comparison plot
+        byzantine_data = self.organize_byzantine_data()
+        if any(v is not None for v in byzantine_data.values()):
+            print("\nGenerating Byzantine comparison plot...")
+            self.plot_byzantine_comparison(byzantine_data)
 
     def generate_summary_table(self):
         """Generate summary statistics table."""
