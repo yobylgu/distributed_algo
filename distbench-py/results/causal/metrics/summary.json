@@ -1,0 +1,71 @@
+[
+  {
+    "config_file": "n10_f2.yaml",
+    "num_trials": 2,
+    "avg_latency_ms": {
+      "mean": 3303.4333333333334,
+      "min": 3286.9,
+      "max": 3319.9666666666667
+    },
+    "rcb_deliver_total": {
+      "mean": 30.0
+    },
+    "rcb_broadcast_total": {
+      "mean": 3.0
+    },
+    "nodes_delivered": {
+      "mean": 30.0
+    },
+    "total_messages_sent": {
+      "mean": 2044.0,
+      "min": 2027,
+      "max": 2061
+    }
+  },
+  {
+    "config_file": "n15_f4.yaml",
+    "num_trials": 2,
+    "avg_latency_ms": {
+      "mean": 5246.9222222222215,
+      "min": 5237.777777777777,
+      "max": 5256.066666666667
+    },
+    "rcb_deliver_total": {
+      "mean": 45.0
+    },
+    "rcb_broadcast_total": {
+      "mean": 3.0
+    },
+    "nodes_delivered": {
+      "mean": 45.0
+    },
+    "total_messages_sent": {
+      "mean": 6634.5,
+      "min": 6619,
+      "max": 6650
+    }
+  },
+  {
+    "config_file": "n7_f1.yaml",
+    "num_trials": 2,
+    "avg_latency_ms": {
+      "mean": 2701.2380952380954,
+      "min": 2679.4285714285716,
+      "max": 2723.0476190476193
+    },
+    "rcb_deliver_total": {
+      "mean": 21.0
+    },
+    "rcb_broadcast_total": {
+      "mean": 3.0
+    },
+    "nodes_delivered": {
+      "mean": 21.0
+    },
+    "total_messages_sent": {
+      "mean": 709.5,
+      "min": 701,
+      "max": 718
+    }
+  }
+]

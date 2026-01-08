@@ -27,20 +27,19 @@ class CausalBenchmarkRunner:
         self.timeout = timeout
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Clean rebuild to ensure latest code is used
-        print("Cleaning and rebuilding environment...")
-        venv_path = Path(".venv")
-        if venv_path.exists():
-            import shutil
-            shutil.rmtree(venv_path)
-            print("  Removed old .venv")
-        subprocess.run(["uv", "sync"], capture_output=True, check=True)
-        print("  Environment rebuilt")
-
     def run_benchmark(self, config_file: Path, trial: int) -> dict:
         """Run a single benchmark trial."""
         print(f"\n  Trial {trial + 1}/{self.trials}")
         print(f"    Config: {config_file.name}")
+
+        # Clean up old log files before each run
+        import glob
+        for pattern in ["n*.txt", "bracha-n*.txt", "dolev-n*.txt"]:
+            for f in glob.glob(pattern):
+                try:
+                    Path(f).unlink()
+                except Exception:
+                    pass
 
         # Run distbench
         cmd = [
@@ -84,8 +83,9 @@ class CausalBenchmarkRunner:
             return None
 
     def parse_metrics(self, stdout: str, stderr: str) -> dict:
-        """Parse metrics from distbench output."""
-        output = stdout + stderr
+        """Parse metrics from distbench output and log files."""
+        from datetime import datetime
+        import glob
 
         metrics = {
             "nodes_total": 0,
@@ -99,44 +99,89 @@ class CausalBenchmarkRunner:
             "rcb_deliver_total": 0,
         }
 
-        # Parse RCB metrics from JSON output
+        # Read from log files (n*.txt) where metrics are actually written
+        log_files = sorted(glob.glob("n*.txt"))
+        metrics["nodes_total"] = len(log_files)
+
+        all_deliveries = 0
+        all_broadcasts = 0
         latency_values = []
 
-        # Parse avg_latency_ms from RCB_METRICS_JSON
-        latency_matches = re.findall(r"'avg_latency_ms':\s*'([\d.]+)'", output)
-        if latency_matches:
-            latency_values = [float(x) for x in latency_matches if float(x) > 0]
+        for log_file in log_files:
+            try:
+                with open(log_file, 'r') as f:
+                    content = f.read()
 
-        # Parse rcb_broadcast_count
-        broadcast_matches = re.findall(r"'rcb_broadcast_count':\s*'(\d+)'", output)
-        if broadcast_matches:
-            metrics["rcb_broadcast_total"] = sum(int(x) for x in broadcast_matches)
+                # Count deliveries
+                deliveries = len(re.findall(r">>> RCB DELIVER", content))
+                all_deliveries += deliveries
 
-        # Parse rcb_deliver_count
-        deliver_matches = re.findall(r"'rcb_deliver_count':\s*'(\d+)'", output)
-        if deliver_matches:
-            metrics["rcb_deliver_total"] = sum(int(x) for x in deliver_matches)
+                # Count broadcasts
+                broadcasts = len(re.findall(r"rcbBroadcast", content))
+                all_broadcasts += broadcasts
 
-        # Count RCB deliveries from log
-        delivered_pattern = r">>> RCB DELIVER"
-        deliveries = len(re.findall(delivered_pattern, output))
+                # Calculate latency from timestamps
+                # Find first line timestamp (start time) and delivery timestamps
+                lines = content.strip().split('\n')
+                start_time = None
 
-        # Also parse underlying Bracha metrics if available
-        messages_sent_matches = re.findall(r'"messages_sent":"(\d+)"', output)
-        if messages_sent_matches:
-            metrics["total_messages_sent"] = sum(int(x) for x in messages_sent_matches)
+                for line in lines:
+                    # Parse timestamp: "2026-01-08 15:40:50,843"
+                    ts_match = re.match(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3})", line)
+                    if ts_match:
+                        ts_str = ts_match.group(1)
+                        ts = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S,%f")
+                        if start_time is None:
+                            start_time = ts
 
-        messages_received_matches = re.findall(r'"messages_received":"(\d+)"', output)
-        if messages_received_matches:
-            metrics["total_messages_received"] = sum(int(x) for x in messages_received_matches)
+                        # If this is a delivery line, calculate latency
+                        if ">>> RCB DELIVER" in line and start_time:
+                            latency_ms = (ts - start_time).total_seconds() * 1000
+                            latency_values.append(latency_ms)
 
-        # Aggregate latency metrics
+            except Exception as e:
+                print(f"    Warning: Error reading {log_file}: {e}")
+
+        # Also count messages from bracha/dolev logs
+        bracha_files = sorted(glob.glob("bracha-n*.txt"))
+        dolev_files = sorted(glob.glob("dolev-n*.txt"))
+
+        for bracha_file in bracha_files:
+            try:
+                with open(bracha_file, 'r') as f:
+                    content = f.read()
+                    # Count outgoing BRACHA messages (send, echo, ready)
+                    bracha_sends = len(re.findall(r"BRACHA send", content))
+                    metrics["total_messages_sent"] += bracha_sends
+                    # Count received messages
+                    recv_echo = len(re.findall(r"RECV ECHO", content))
+                    recv_ready = len(re.findall(r"RECV READY", content))
+                    recv_send = len(re.findall(r"RECV SEND", content))
+                    metrics["total_messages_received"] += recv_echo + recv_ready + recv_send
+            except Exception:
+                pass
+
+        for dolev_file in dolev_files:
+            try:
+                with open(dolev_file, 'r') as f:
+                    content = f.read()
+                    # Count all dolev message exchanges (recv entries represent actual network messages)
+                    dolev_recv = len(re.findall(r"\] recv ", content))
+                    # Add to total_messages_sent as measure of network message complexity
+                    metrics["total_messages_sent"] += dolev_recv
+                    metrics["total_messages_received"] += dolev_recv
+            except Exception:
+                pass
+
+        # Set aggregated metrics
+        metrics["rcb_deliver_total"] = all_deliveries
+        metrics["rcb_broadcast_total"] = all_broadcasts
+        metrics["nodes_delivered"] = all_deliveries
+
         if latency_values:
             metrics["avg_latency_ms"] = sum(latency_values) / len(latency_values)
             metrics["min_latency_ms"] = min(latency_values)
             metrics["max_latency_ms"] = max(latency_values)
-
-        metrics["nodes_delivered"] = deliveries
 
         return metrics
 
